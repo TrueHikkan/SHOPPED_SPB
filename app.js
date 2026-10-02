@@ -21,7 +21,7 @@ if (tg?.initDataUnsafe?.user) {
    Токен бота и chat_id хранятся ТОЛЬКО на сервере.
    Замените на свой URL после деплоя Cloudflare Worker
 ============================================================ */
-const ORDER_PROXY_URL = 'https://YOUR-WORKER.workers.dev/order';
+const ORDER_PROXY_URL = 'https://my-shop-order-proxy.tecnoakk10.workers.dev';
 
 /* ============================================================
    Хелперы
