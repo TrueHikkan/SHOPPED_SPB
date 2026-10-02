@@ -25,6 +25,9 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Когда таббар скрыт — убираем нижний отступ */
+body.no-tabbar { padding-bottom: 0; }
+
 .hidden { display: none !important; }
 
 /* ===== Шапка ===== */
@@ -615,7 +618,7 @@ body {
 }
 
 .checkout-actions {
-  padding: 0 16px 100px;
+  padding: 0 16px 40px;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -672,7 +675,3 @@ body {
   color: var(--hint);
 }
 .success-details span { color: var(--text); font-weight: 600; }
-
-body.no-tabbar { padding-bottom: 0; }
-
-.checkout-actions { padding: 0 16px 40px; }
