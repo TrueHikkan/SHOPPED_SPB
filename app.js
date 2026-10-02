@@ -1,0 +1,875 @@
+/* ============================================================
+   Telegram App — инициализация
+============================================================ */
+const tg = window.Telegram?.WebApp;
+if (tg) {
+  tg.ready();
+  tg.expand();
+  tg.setHeaderColor?.('bg_color');
+  tg.setBackgroundColor?.('bg_color');
+}
+
+if (tg?.initDataUnsafe?.user) {
+  const u = tg.initDataUnsafe.user;
+  const name = [u.first_name, u.last_name].filter(Boolean).join(' ');
+  const greetEl = document.getElementById('userGreeting');
+  if (greetEl) greetEl.textContent = `Привет, ${name}! 👋`;
+}
+
+/* ============================================================
+   Токен второго бота и Chat ID для отправки заказов
+============================================================ */
+const TOKEN2 = 'YOUR_SECOND_BOT_TOKEN_HERE';
+const ADMIN_CHAT_ID2 = 'YOUR_ADMIN_CHAT_ID_HERE';
+
+/* ============================================================
+   Хелперы
+============================================================ */
+const $ = (sel) => document.querySelector(sel);
+
+function hapticImpact(style = 'light') { tg?.HapticFeedback?.impactOccurred?.(style); }
+function hapticNotify(type = 'success') { tg?.HapticFeedback?.notificationOccurred?.(type); }
+function hapticSelection() { tg?.HapticFeedback?.selectionChanged?.(); }
+
+const ESCAPE_MAP = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, (ch) => ESCAPE_MAP[ch]);
+}
+
+function plural(n, one, few, many) {
+  const m10 = n % 10;
+  const m100 = n % 100;
+  if (m10 === 1 && m100 !== 11) return one;
+  if (m10 >= 2 && m10 <= 4 && (m100 < 10 || m100 >= 20)) return few;
+  return many;
+}
+
+const fmtPrice = (n) => n.toLocaleString('ru-RU');
+
+/* ============================================================
+   Категории и Товары
+============================================================ */
+const CATEGORIES = [
+  { id: 'energy', name: 'Энергетики', icon: '⚡' },
+  { id: 'pod',   name: 'Поды',  icon: '🚬' },
+  { id: 'liq',   name: 'Жижи',  icon: '🧪' },
+];
+
+const PRODUCTS = [
+  {
+    id: 1,
+    category: 'energy',
+    title: 'Блю монстер',
+    desc: 'тропик вайб для бедных',
+    fullDesc: 'Кстати тропический вкус почти у всех энергетиков есть. ' +
+      'Буквально почти у всех',
+    price: 99,
+    image: 'photos/energy/Blue-Monster.png',
+  },
+  {
+    id: 2,
+    category: 'energy',
+    title: 'Черная пародия на редбулл',
+    desc: 'дороже редбулла',
+    fullDesc: 'У меня он дороже редбулла, говно(((',
+    price: 1000,
+    image: 'photos/energy/Classic-Monster.png',
+  },
+  {
+    id: 3,
+    category: 'energy',
+    title: 'Розовый, но не для пидорасов',
+    desc: 'Для пидорасов — белый',
+    fullDesc: 'типа дахуя женственный цвет, хаха смешно типа',
+    price: 333,
+    image: 'photos/energy/Pink-Monster.png',
+  },
+  {
+    id: 4,
+    category: 'energy',
+    title: 'О да папочка, бей меня сильнее',
+    desc: 'ДИСКЛЕЙМЕР: ТОЛЬКО ДЛЯ ФЕМБОЕВ',
+    fullDesc: 'Если вы хотите чтобы вас изнасиловали в подворотне',
+    price: 6767,
+    image: 'photos/energy/White-Monster.png',
+  },
+  {
+    id: 5,
+    category: 'liq',
+    title: 'Iceberg',
+    desc: 'Едимнственная нормальная',
+    fullDesc: 'О боже, она такая нормальноотфотканная, необычная. Да ценник из-за этого выше',
+    price: 9999,
+    image: 'photos/liq/Iceberg.png'
+  },
+  {
+    id: 6,
+    category: 'liq',
+    title: 'Красные',
+    desc: 'Не, ну тут 2 красные',
+    fullDesc: 'Реально, прикинь, 2 красные. Я сам ахуел',
+    price: 666,
+    image: 'photos/liq/krasniy.png'
+  },
+  {
+    id: 7,
+    category: 'liq',
+    title: 'чё злые(',
+    desc: 'Я хз, ии злая манашка',
+    fullDesc: 'Я их баюсь((',
+    price: 1488,
+    image: 'photos/liq/5_zlih.png'
+  },
+  {
+    id: 8,
+    category: 'liq',
+    title: 'Зелёные',
+    desc: 'Тут реально зелёные',
+    fullDesc: 'Ты не понял, тут РЕАЛЬНО зелёные',
+    price: 777,
+    image: 'photos/liq/zeleny.png',
+  },
+  {
+    id: 9,
+    category: 'liq',
+    title: 'ЗЛАЯ монашка',
+    desc: 'РЕАЛЬНО ЗЛАЯ МОНАШКА',
+    fullDesc: 'ТИПА ТЫ НЕ ПОНЯЛ, ТУТ РЕАЛЬНО ЗЛАЯ МОНАШКА',
+    price: 666666,
+    image: 'photos/liq/zlaya.png',
+  },
+  {
+    id: 10,
+    category: 'liq',
+    title: 'На что я трачу свою жизнь...',
+    desc: 'Со вкусом экзистанциалього кризиса',
+    fullDesc: 'Я заебался давать имена переменным. ХАХАХАА, цена 67',
+    price: 67,
+    image: 'photos/liq/och_zlaya.png',
+  }
+];
+const PRODUCTS_BY_ID = new Map(PRODUCTS.map((p) => [p.id, p]));
+const PRODUCTS_BY_CATEGORY = PRODUCTS.reduce((acc, p) => {
+  (acc[p.category] ||= []).push(p);
+  return acc;
+}, {});
+
+function getFullDescription(p) { return p.fullDesc || p.fulldesc || p.desc || ''; }
+function getProduct(id) { return PRODUCTS_BY_ID.get(Number(id)); }
+
+/* ============================================================
+   Корзина (localStorage)
+============================================================ */
+const STORAGE_KEY = 'mini-shop-cart';
+let cart = loadCart();
+
+function loadCart() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
+    const clean = {};
+    Object.entries(raw).forEach(([id, qty]) => {
+      const n = Math.floor(Number(qty));
+      if (Number.isFinite(n) && n > 0 && PRODUCTS_BY_ID.has(Number(id))) {
+        clean[id] = n;
+      }
+    });
+    return clean;
+  } catch { return {}; }
+}
+
+function saveCart() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(cart)); } catch {}
+}
+
+function addToCart(id) {
+  if (!getProduct(id)) return;
+  cart[id] = (cart[id] || 0) + 1;
+  saveCart();
+  updateCartUI();
+}
+
+function changeQty(id, delta) {
+  if (!cart[id]) return;
+  cart[id] += delta;
+  if (cart[id] <= 0) delete cart[id];
+  saveCart();
+  updateCartUI();
+  hapticSelection();
+}
+
+function getCartEntries() {
+  const out = [];
+  for (const [id, qty] of Object.entries(cart)) {
+    const product = getProduct(id);
+    if (product) out.push({ ...product, qty });
+  }
+  return out;
+}
+
+function getTotalPrice() {
+  let total = 0;
+  for (const [id, qty] of Object.entries(cart)) {
+    const p = getProduct(id);
+    if (p) total += p.price * qty;
+  }
+  return total;
+}
+
+function getTotalCount() {
+  let count = 0;
+  for (const [id, qty] of Object.entries(cart)) {
+    if (PRODUCTS_BY_ID.has(Number(id))) count += qty;
+  }
+  return count;
+}
+
+/* ============================================================
+   DOM-элементы
+============================================================ */
+const headerEl = $('#header');
+const categoriesEl = $('#categories');
+const catalogView = $('#catalogView');
+const categoryView = $('#categoryView');
+const categoryBack = $('#categoryBack');
+const categoryTitleEl = $('#categoryTitle');
+const categoryProductsEl = $('#categoryProducts');
+const cartView = $('#cartView');
+const cartItemsEl = $('#cartItems');
+const cartEmptyEl = $('#cartEmpty');
+const cartFooterEl = $('#cartFooter');
+const totalPriceEl = $('#totalPrice');
+const checkoutBtn = $('#checkoutBtn');
+const cartBadge = $('#cartBadge');
+const tabbar = $('#tabbar');
+const tabCatalog = $('#tabCatalog');
+const tabCart = $('#tabCart');
+const detailView = $('#detailView');
+const detailBack = $('#detailBack');
+const detailImage = $('#detailImage');
+const detailTitle = $('#detailTitle');
+const detailDesc = $('#detailDesc');
+const detailPrice = $('#detailPrice');
+const detailAdd = $('#detailAdd');
+
+const checkoutView = $('#checkoutView');
+const successView = $('#successView');
+const checkoutBack = $('#checkoutBack');
+const dateScroll = $('#dateScroll');
+const timeGrid = $('#timeGrid');
+const metroInput = $('#metroInput');
+const metroList = $('#metroList');
+const phoneInput = $('#phoneInput');
+const fromTelegramBtn = $('#fromTelegramBtn');
+const commentInput = $('#commentInput');
+const promoInput = $('#promoInput');
+const applyPromoBtn = $('#applyPromoBtn');
+const summaryItems = $('#summaryItems');
+const summaryTotal = $('#summaryTotal');
+const confirmOrderBtn = $('#confirmOrderBtn');
+const cancelOrderBtn = $('#cancelOrderBtn');
+const orderNumberDisplay = $('#orderNumberDisplay');
+const successDetails = $('#successDetails');
+const successCloseBtn = $('#successCloseBtn');
+
+const pickupInfoEl = $('#pickupInfo');
+const deliveryInfoEl = $('#deliveryInfo');
+const deliveryPills = checkoutView.querySelectorAll('[data-delivery]');
+
+/* ============================================================
+   Состояние приложения
+============================================================ */
+let activeView = 'catalog';
+let currentCategoryId = null;
+let currentProductId = null;
+let detailOrigin = 'catalog';
+
+let checkoutState = {
+  deliveryType: 'pickup',
+  date: '',
+  time: '',
+  metro: '',
+  phone: '',
+  comment: '',
+  promo: ''
+};
+
+/* ============================================================
+   Данные для оформления заказа
+============================================================ */
+const SPB_METRO_STATIONS = [
+  "Автово", "Адмиралтейская", "Академическая", "Балтийская", "Бухарестская",
+  "Василеостровская", "Владимирская", "Волковская", "Выборгская", "Горьковская",
+  "Гостиный двор", "Гражданский проспект", "Девяткино", "Достоевская", "Елизаровская",
+  "Звенигородская", "Зенит", "Кировский завод", "Комендантский проспект", "Крестовский остров",
+  "Купчино", "Ладожская", "Ленинский проспект", "Лесная", "Лиговский проспект",
+  "Ломоносовская", "Маяковская", "Международная", "Московская", "Московские ворота",
+  "Нарвская", "Невский проспект", "Новочеркасская", "Обводный канал", "Обухово",
+  "Озерки", "Парк Победы", "Парнас", "Петроградская", "Пионерская",
+  "Площадь Александра Невского", "Площадь Восстания", "Площадь Ленина", "Площадь Мужества",
+  "Политехническая", "Приморская", "Пролетарская", "Проспект Большевиков", "Проспект Ветеранов",
+  "Проспект Просвещения", "Пушкинская", "Рыбацкое", "Садовая", "Сенная площадь",
+  "Спасская", "Спортивная", "Старая Деревня", "Технологический институт", "Удельная",
+  "Улица Дыбенко", "Фрунзенская", "Черная речка", "Чернышевская", "Чкаловская",
+  "Электросила"
+];
+
+function generateDates() {
+  const dates = [];
+  const days = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+  const today = new Date();
+
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(today);
+    d.setDate(today.getDate() + i);
+    const dayNum = String(d.getDate()).padStart(2, '0');
+    const monthNum = String(d.getMonth() + 1).padStart(2, '0');
+    const dateStr = `${dayNum}.${monthNum}`;
+    const dayName = i === 0 ? 'сегодня' : (i === 1 ? 'завтра' : days[d.getDay()]);
+    dates.push({ date: dateStr, dayName });
+  }
+  return dates;
+}
+
+function generateTimes() {
+  const times = [];
+  for (let h = 18; h <= 23; h++) {
+    for (let m = 0; m < 60; m += 30) {
+      if (h === 23 && m > 30) continue;
+      const hourStr = String(h).padStart(2, '0');
+      const minStr = String(m).padStart(2, '0');
+      const isHalf = m === 30;
+      const nextHour = isHalf ? (h === 23 ? '00' : String(h + 1).padStart(2, '0')) : hourStr;
+      const nextMin = isHalf ? '00' : '30';
+      times.push(`${hourStr}:${minStr} – ${nextHour}:${nextMin}`);
+    }
+  }
+  return times;
+}
+
+/* ============================================================
+   Переключение экранов
+============================================================ */
+const VIEWS = {
+  catalog: catalogView,
+  category: categoryView,
+  cart: cartView,
+  detail: detailView,
+  checkout: checkoutView,
+  success: successView
+};
+
+function showView(name) {
+  for (const key in VIEWS) {
+    const el = VIEWS[key];
+    if (el) el.classList.toggle('hidden', key !== name);
+  }
+  activeView = name;
+}
+
+function setHeaderVisible(visible) { headerEl.classList.toggle('header--hidden', !visible); }
+function setTabbarVisible(visible) { tabbar.classList.toggle('hidden', !visible); }
+
+function setActiveTab(tab) {
+  const isCatalog = tab === 'catalog';
+  tabCatalog.classList.toggle('active', isCatalog);
+  tabCart.classList.toggle('active', !isCatalog);
+}
+
+/* ============================================================
+   Шаблон карточки товара
+============================================================ */
+function productCardHTML(p) {
+  const title = escapeHtml(p.title);
+  const desc = escapeHtml(p.desc);
+  const image = escapeHtml(p.image);
+  const price = fmtPrice(p.price);
+  return `
+    <div class="product-card" data-id="${p.id}">
+      <img src="${image}" alt="${title}" loading="lazy"
+        onerror="this.style.background='rgba(128,128,128,.15)'; this.alt='📷'; this.removeAttribute('src');" />
+      <div class="product-info">
+        <div class="product-title">${title}</div>
+        <div class="product-desc">${desc}</div>
+        <div class="product-row">
+          <div class="product-price">${price} ₽</div>
+          <button class="add-btn" data-add="${p.id}" type="button" aria-label="Добавить">+</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/* ============================================================
+   ГЛАВНОЕ МЕНЮ — категории
+============================================================ */
+function renderCategories() {
+  categoriesEl.innerHTML = CATEGORIES.map((cat) => {
+    const count = (PRODUCTS_BY_CATEGORY[cat.id] || []).length;
+    return `
+      <div class="category-card" data-category="${cat.id}">
+        <div class="category-card-info">
+          <div class="category-card-name">${cat.icon} ${escapeHtml(cat.name)}</div>
+          <div class="category-card-count">${count} ${plural(count, 'товар', 'товара', 'товаров')}</div>
+        </div>
+        <div class="category-card-arrow">→</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function showCatalog() {
+  currentCategoryId = null;
+  currentProductId = null;
+  detailOrigin = 'catalog';
+  showView('catalog');
+  setTabbarVisible(true);
+  setHeaderVisible(true);
+  setActiveTab('catalog');
+  window.scrollTo(0, 0);
+  tg?.BackButton?.hide?.();
+}
+
+categoriesEl.addEventListener('click', (e) => {
+  const card = e.target.closest('.category-card');
+  if (!card) return;
+  openCategory(card.dataset.category);
+  hapticImpact('light');
+});
+
+/* ============================================================
+   АССОРТИМЕНТ КАТЕГОРИИ
+============================================================ */
+function renderCategoryProducts(categoryId) {
+  const items = PRODUCTS_BY_CATEGORY[categoryId] || [];
+  categoryProductsEl.innerHTML = items.length === 0
+    ? `<div class="empty"><div class="empty-icon">📦</div><p>В этой категории пока нет товаров</p></div>`
+    : items.map(productCardHTML).join('');
+}
+
+function openCategory(id, scrollToTop = true) {
+  const cat = CATEGORIES.find((c) => c.id === id);
+  if (!cat) return;
+  currentCategoryId = id;
+  categoryTitleEl.textContent = `${cat.icon} ${cat.name}`;
+  renderCategoryProducts(id);
+  showView('category');
+  setTabbarVisible(true);
+  setHeaderVisible(false);
+  setActiveTab('catalog');
+  if (scrollToTop) window.scrollTo(0, 0);
+  tg?.BackButton?.show?.();
+}
+
+function closeCategory() { showCatalog(); }
+categoryBack.addEventListener('click', closeCategory);
+
+categoryProductsEl.addEventListener('click', (e) => {
+  const addBtn = e.target.closest('[data-add]');
+  if (addBtn) {
+    addToCart(Number(addBtn.dataset.add));
+    hapticImpact('light');
+    return;
+  }
+  const card = e.target.closest('.product-card');
+  if (card) openDetail(Number(card.dataset.id), 'category');
+});
+
+/* ============================================================
+   ПОДРОБНОЕ ОПИСАНИЕ ТОВАРА
+============================================================ */
+function renderDetail(p) {
+  detailTitle.textContent = p.title;
+  detailDesc.textContent = getFullDescription(p);
+  detailPrice.textContent = fmtPrice(p.price) + ' ₽';
+  detailImage.onerror = () => {
+    detailImage.onerror = null;
+    detailImage.removeAttribute('src');
+    detailImage.alt = '📷';
+    detailImage.style.background = 'rgba(128,128,128,.15)';
+  };
+  detailImage.style.background = '';
+  detailImage.src = p.image;
+  detailImage.alt = p.title;
+}
+
+function openDetail(id, origin = 'catalog') {
+  const p = getProduct(id);
+  if (!p) return;
+  detailOrigin = origin;
+  currentProductId = id;
+  renderDetail(p);
+  showView('detail');
+  setTabbarVisible(false);
+  setHeaderVisible(false);
+  window.scrollTo(0, 0);
+  tg?.BackButton?.show?.();
+}
+
+function closeDetail() {
+  const origin = detailOrigin;
+  const categoryId = currentCategoryId;
+  currentProductId = null;
+  detailOrigin = 'catalog';
+  if (origin === 'category' && categoryId) openCategory(categoryId, false);
+  else showCatalog();
+}
+detailBack.addEventListener('click', closeDetail);
+
+detailAdd.addEventListener('click', () => {
+  if (currentProductId == null) return;
+  addToCart(currentProductId);
+  hapticNotify('success');
+  closeDetail();
+});
+
+/* ============================================================
+   КОРЗИНА — экран
+============================================================ */
+function showCart() {
+  showView('cart');
+  setTabbarVisible(true);
+  setHeaderVisible(true);
+  setActiveTab('cart');
+  renderCart();
+  window.scrollTo(0, 0);
+  tg?.BackButton?.hide?.();
+}
+
+function renderCart() {
+  const entries = getCartEntries();
+
+  if (entries.length === 0) {
+    cartItemsEl.innerHTML = '';
+    cartEmptyEl.classList.remove('hidden');
+    cartFooterEl.classList.add('hidden');
+    totalPriceEl.textContent = '0 ₽';
+    checkoutBtn.disabled = true;
+    return;
+  }
+
+  cartEmptyEl.classList.add('hidden');
+  cartFooterEl.classList.remove('hidden');
+  checkoutBtn.disabled = false;
+
+  cartItemsEl.innerHTML = entries.map((item) => `
+    <div class="cart-item">
+      <img src="${escapeHtml(item.image)}" alt="${escapeHtml(item.title)}" />
+      <div class="cart-item-info">
+        <div class="cart-item-title">${escapeHtml(item.title)}</div>
+        <div class="cart-item-price">${fmtPrice(item.price)} ₽</div>
+        <div class="qty">
+          <button data-action="dec" data-id="${item.id}" type="button">−</button>
+          <span>${item.qty}</span>
+          <button data-action="inc" data-id="${item.id}" type="button">+</button>
+        </div>
+      </div>
+      <div class="item-total">${fmtPrice(item.price * item.qty)} ₽</div>
+    </div>
+  `).join('');
+
+  totalPriceEl.textContent = fmtPrice(getTotalPrice()) + ' ₽';
+}
+
+cartItemsEl.addEventListener('click', (e) => {
+  const btn = e.target.closest('button[data-action]');
+  if (!btn) return;
+  const id = Number(btn.dataset.id);
+  if (btn.dataset.action === 'inc') changeQty(id, +1);
+  else if (btn.dataset.action === 'dec') changeQty(id, -1);
+});
+
+function updateBadge() {
+  if (!cartBadge) return;
+  const count = getTotalCount();
+  if (count > 0) {
+    cartBadge.textContent = count > 99 ? '99+' : String(count);
+    cartBadge.classList.remove('hidden');
+  } else {
+    cartBadge.classList.add('hidden');
+  }
+}
+
+function updateCartUI() {
+  renderCart();
+  updateBadge();
+}
+
+tabCatalog.addEventListener('click', showCatalog);
+tabCart.addEventListener('click', showCart);
+
+/* ============================================================
+   ОФОРМЛЕНИЕ ЗАКАЗА (CHECKOUT)
+============================================================ */
+function initCheckoutForm() {
+  // Сброс полей ввода и промокода между сессиями
+  metroInput.value = '';
+  phoneInput.value = '';
+  commentInput.value = '';
+  promoInput.value = '';
+  checkoutState.metro = '';
+  checkoutState.phone = '';
+  checkoutState.comment = '';
+  checkoutState.promo = '';
+
+  // Сброс типа доставки на «Самовывоз»
+  checkoutState.deliveryType = 'pickup';
+  deliveryPills.forEach((b) => b.classList.toggle('active', b.dataset.delivery === 'pickup'));
+  pickupInfoEl.classList.remove('hidden');
+  deliveryInfoEl.classList.add('hidden');
+
+  metroList.innerHTML = SPB_METRO_STATIONS.map((s) => `<option value="${s}">`).join('');
+
+  const dates = generateDates();
+  dateScroll.innerHTML = dates.map((d, i) => `
+    <button class="date-pill ${i === 0 ? 'active' : ''}" data-date="${d.date}" type="button">
+      <span class="day-num">${d.date}</span>
+      <span class="day-name">${d.dayName}</span>
+    </button>
+  `).join('');
+  checkoutState.date = dates[0].date;
+
+  const times = generateTimes();
+  timeGrid.innerHTML = times.map((t) => `
+    <button class="time-btn" data-time="${t}" type="button">${t}</button>
+  `).join('');
+  checkoutState.time = '';
+
+  updateCheckoutSummary();
+}
+
+function updateCheckoutSummary() {
+  const text = fmtPrice(getTotalPrice()) + ' ₽';
+  summaryItems.textContent = text;
+  summaryTotal.textContent = text;
+}
+
+function showCheckout() {
+  showView('checkout');
+  setTabbarVisible(false);
+  setHeaderVisible(false);
+  window.scrollTo(0, 0);
+  tg?.BackButton?.show?.();
+  initCheckoutForm();
+}
+
+checkoutBtn.addEventListener('click', () => {
+  if (getCartEntries().length === 0) return;
+  showCheckout();
+});
+
+// Обработчик выбора типа доставки
+deliveryPills.forEach((btn) => {
+  btn.addEventListener('click', () => {
+    deliveryPills.forEach((b) => b.classList.toggle('active', b === btn));
+    checkoutState.deliveryType = btn.dataset.delivery;
+
+    const isPickup = checkoutState.deliveryType === 'pickup';
+    pickupInfoEl.classList.toggle('hidden', !isPickup);
+    deliveryInfoEl.classList.toggle('hidden', isPickup);
+    hapticSelection();
+  });
+});
+
+// Обработчик выбора даты
+dateScroll.addEventListener('click', (e) => {
+  const pill = e.target.closest('.date-pill');
+  if (!pill) return;
+  dateScroll.querySelectorAll('.date-pill').forEach((p) => p.classList.toggle('active', p === pill));
+  checkoutState.date = pill.dataset.date;
+  hapticSelection();
+});
+
+// Обработчик выбора времени
+timeGrid.addEventListener('click', (e) => {
+  const btn = e.target.closest('.time-btn');
+  if (!btn) return;
+  timeGrid.querySelectorAll('.time-btn').forEach((b) => b.classList.toggle('active', b === btn));
+  checkoutState.time = btn.dataset.time;
+  hapticSelection();
+});
+
+fromTelegramBtn.addEventListener('click', () => {
+  const phone = tg?.initDataUnsafe?.user?.phone_number;
+  if (phone) {
+    phoneInput.value = phone;
+    checkoutState.phone = phone;
+  } else {
+    tg?.showAlert?.('Telegram не предоставил номер телефона. Введите вручную.');
+  }
+});
+
+// Обработчики полей ввода
+metroInput.addEventListener('input', (e) => { checkoutState.metro = e.target.value; });
+phoneInput.addEventListener('input', (e) => { checkoutState.phone = e.target.value; });
+commentInput.addEventListener('input', (e) => { checkoutState.comment = e.target.value; });
+promoInput.addEventListener('input', (e) => { checkoutState.promo = e.target.value; });
+
+// Применение промокода (заглушка)
+applyPromoBtn.addEventListener('click', () => {
+  if (checkoutState.promo.trim() === '') return;
+  tg?.showAlert?.('Промокод не найден или неактивен.');
+});
+
+// Отмена заказа
+cancelOrderBtn.addEventListener('click', showCart);
+
+// Возврат из оформления
+checkoutBack.addEventListener('click', showCart);
+
+/* ============================================================
+   ПОДТВЕРЖДЕНИЕ ЗАКАЗА И ОТПРАВКА В БОТА
+============================================================ */
+function generateOrderNumber() {
+  const date = new Date();
+  const year = String(date.getFullYear()).slice(-2);
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const random = String(Math.floor(Math.random() * 1000)).padStart(3, '0');
+  return `ORD-${year}${month}${day}-${random}`;
+}
+
+async function sendOrderToBot(order) {
+  if (TOKEN2 === 'YOUR_SECOND_BOT_TOKEN_HERE' || ADMIN_CHAT_ID2 === 'YOUR_ADMIN_CHAT_ID_HERE') {
+    console.warn('TOKEN2 или ADMIN_CHAT_ID2 не настроены. Заказ не отправлен в Telegram.');
+    return;
+  }
+
+  const itemsText = order.items
+    .map((i) => `• ${escapeHtml(i.title)} (x${i.qty}) — ${i.sum} ₽`)
+    .join('\n');
+
+  const clientName = escapeHtml(order.user?.first_name || 'Аноним');
+  const clientId = order.user?.id || 'нет ID';
+
+  const text = `
+🛒 <b>Новый заказ №${escapeHtml(order.id)}</b>
+
+👤 <b>Клиент:</b> ${clientName} (${clientId})
+📞 <b>Телефон:</b> ${escapeHtml(order.phone)}
+🚇 <b>Метро:</b> ${escapeHtml(order.metro)}
+📦 <b>Тип:</b> ${order.deliveryType === 'pickup' ? 'Самовывоз' : 'Доставка'}
+📅 <b>Дата:</b> ${escapeHtml(order.date)}
+⏰ <b>Время:</b> ${escapeHtml(order.time)}
+💬 <b>Комментарий:</b> ${escapeHtml(order.comment || 'Нет')}
+
+<b>Товары:</b>
+${itemsText}
+
+💰 <b>Итого: ${order.total} ₽</b>
+  `;
+
+  try {
+    const response = await fetch(`https://api.telegram.org/bot${TOKEN2}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: ADMIN_CHAT_ID2,
+        text,
+        parse_mode: 'HTML'
+      })
+    });
+    const data = await response.json();
+    if (!data.ok) {
+      console.error('Ошибка отправки в Telegram:', data);
+      tg?.showAlert?.('Не удалось отправить заказ. Мы свяжемся с вами вручную.');
+    }
+  } catch (err) {
+    console.error('Сетевая ошибка при отправке заказа:', err);
+    tg?.showAlert?.('Не удалось отправить заказ. Мы свяжемся с вами вручную.');
+  }
+}
+
+confirmOrderBtn.addEventListener('click', async () => {
+  // Валидация
+  if (!checkoutState.metro.trim()) {
+    tg?.showAlert?.('Пожалуйста, укажите станцию метро.');
+    return;
+  }
+  if (!checkoutState.phone.trim()) {
+    tg?.showAlert?.('Пожалуйста, укажите номер телефона.');
+    return;
+  }
+  if (!checkoutState.time) {
+    tg?.showAlert?.('Пожалуйста, выберите время.');
+    return;
+  }
+
+  confirmOrderBtn.disabled = true;
+
+  const items = getCartEntries();
+  const orderId = generateOrderNumber();
+  const orderTotal = getTotalPrice();
+
+  const order = {
+    id: orderId,
+    items: items.map((i) => ({
+      id: i.id,
+      title: i.title,
+      price: i.price,
+      qty: i.qty,
+      sum: i.price * i.qty
+    })),
+    total: orderTotal,
+    deliveryType: checkoutState.deliveryType,
+    date: checkoutState.date,
+    time: checkoutState.time,
+    metro: checkoutState.metro,
+    phone: checkoutState.phone,
+    comment: checkoutState.comment,
+    promo: checkoutState.promo,
+    createdAt: new Date().toISOString(),
+    user: tg?.initDataUnsafe?.user || null
+  };
+
+  // Сохраняем заказ локально
+  try {
+    const savedOrders = JSON.parse(localStorage.getItem('user_orders') || '[]');
+    savedOrders.push(order);
+    localStorage.setItem('user_orders', JSON.stringify(savedOrders));
+  } catch (e) {
+    console.error('Ошибка сохранения заказа:', e);
+  }
+
+  // Отправляем во второго бота
+  await sendOrderToBot(order);
+
+  cart = {};
+  saveCart();
+  updateCartUI();
+
+  // Экран успеха
+  orderNumberDisplay.textContent = order.id;
+  successDetails.innerHTML = `
+    <div>Метро: <span>${escapeHtml(order.metro)}</span></div>
+    <div>Дата и время: <span>${escapeHtml(order.date)}, ${escapeHtml(order.time)}</span></div>
+    <div>Телефон: <span>${escapeHtml(order.phone)}</span></div>
+    <div>Сумма: <span>${fmtPrice(order.total)} ₽</span></div>
+  `;
+
+  confirmOrderBtn.disabled = false;
+
+  showView('success');
+  setTabbarVisible(false);
+  setHeaderVisible(false);
+  tg?.BackButton?.hide?.();
+  hapticNotify('success');
+});
+
+successCloseBtn.addEventListener('click', showCatalog);
+
+/* ============================================================
+   Кнопка «Назад» в Telegram
+============================================================ */
+tg?.BackButton?.onClick?.(() => {
+  if (activeView === 'detail') closeDetail();
+  else if (activeView === 'category') closeCategory();
+  else if (activeView === 'checkout') showCart();
+  else if (activeView === 'cart') showCatalog();
+  else if (activeView === 'success') showCatalog();
+  else tg?.close?.();
+});
+
+renderCategories();
+updateCartUI();
+showCatalog();

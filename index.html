@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Чем дольше я смотрю на код, тем больше он смотрит на меня</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <header class="header" id="header">
+    <h1 id="shopTitle">🛍️ Нигер реп для гомиков!</h1>
+    <p id="userGreeting" class="greeting"></p>
+  </header>
+
+    <main id="app">
+
+    <!-- Главное меню -->
+    <section id="catalogView" class="view">
+      <div id="categories" class="categories"></div>
+    </section>
+
+    <!-- Ассортимент категории -->
+    <section id="categoryView" class="view hidden">
+      <button id="categoryBack" class="back-btn" type="button" aria-label="Назад">
+        <span class="back-icon">←</span>
+        <span class="back-text">Меню</span>
+      </button>
+      <h2 id="categoryTitle" class="category-title"></h2>
+      <div id="categoryProducts" class="products"></div>
+    </section>
+
+    <!-- Корзина -->
+    <section id="cartView" class="view hidden">
+      <div id="cartItems" class="cart-items"></div>
+      <div id="cartEmpty" class="empty hidden">
+        <div class="empty-icon">🛒</div>
+        <p>Корзина пуста</p>
+        <p class="hint">Добавьте товары из каталога</p>
+      </div>
+      <div id="cartFooter" class="cart-footer">
+        <div class="total">
+          <span>Итого:</span>
+          <span id="totalPrice">0 ₽</span>
+        </div>
+        <button id="checkoutBtn" class="btn-primary" type="button">Оформить заказ</button>
+      </div>
+    </section>
+
+    <!-- Детальный экран товара -->
+    <section id="detailView" class="view hidden">
+      <button id="detailBack" class="back-btn" type="button" aria-label="Назад">
+        <span class="back-icon">←</span>
+        <span class="back-text">Назад</span>
+      </button>
+      <img id="detailImage" class="detail-image" alt="" />
+      <div class="detail-body">
+        <h2 id="detailTitle" class="detail-title"></h2>
+        <p id="detailDesc" class="detail-desc"></p>
+        <div class="detail-price" id="detailPrice"></div>
+        <button id="detailAdd" class="btn-primary" type="button">Добавить в корзину</button>
+      </div>
+    </section>
+
+    <!-- Экран оформления заказа -->
+    <section id="checkoutView" class="view hidden">
+      <div class="checkout-header">
+        <button id="checkoutBack" class="back-btn" type="button" aria-label="Назад">
+          <span class="back-icon">←</span>
+        </button>
+        <h2 class="checkout-title">Оформление заказа</h2>
+      </div>
+
+      <div class="checkout-section">
+        <div class="checkout-section-title">Получение заказа</div>
+        <div class="pill-container">
+          <button class="pill active" data-delivery="pickup" type="button">Самовывоз</button>
+          <button class="pill" data-delivery="delivery" type="button">Доставка</button>
+        </div>
+        <div class="checkout-info-box" id="pickupInfo">
+          <span>Самовывоз с Лесной</span><span class="free-text">Бесплатно</span>
+        </div>
+        <div class="checkout-info-box hidden" id="deliveryInfo">
+          <span>Доставка по СПб</span><span class="free-text">Бесплатно</span>
+        </div>
+      </div>
+
+      <div class="checkout-section">
+        <div class="checkout-section-title">Дата</div>
+        <div class="scroll-x" id="dateScroll"></div>
+      </div>
+
+      <div class="checkout-section">
+        <div class="checkout-section-title">Время</div>
+        <div class="time-grid" id="timeGrid"></div>
+      </div>
+
+      <div class="checkout-section">
+        <div class="input-group">
+          <label>Станция метро <span class="required">*</span></label>
+          <input type="text" id="metroInput" list="metroList" placeholder="Адмиралтейская" autocomplete="off">
+          <datalist id="metroList"></datalist>
+        </div>
+      </div>
+
+      <div class="checkout-section">
+        <div class="input-group">
+          <label>Телефон <span class="required">*</span></label>
+          <div class="phone-input-row">
+            <input type="tel" id="phoneInput" placeholder="+7 900 000-00-00">
+            <button id="fromTelegramBtn" class="btn-secondary" type="button">Из Telegram</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="checkout-section">
+        <div class="input-group">
+          <label>Комментарий</label>
+          <textarea id="commentInput" placeholder="Пожелания к заказу..." rows="3"></textarea>
+        </div>
+      </div>
+
+      <div class="checkout-section">
+        <div class="input-group">
+          <label>Промокод</label>
+          <div class="promo-row">
+            <input type="text" id="promoInput" placeholder="Введите промокод">
+            <button id="applyPromoBtn" class="btn-secondary" type="button">Применить</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="checkout-summary">
+        <div class="summary-row"><span>Товары</span><span id="summaryItems">0 ₽</span></div>
+        <div class="summary-row"><span>Доставка</span><span class="free-text">Бесплатно</span></div>
+        <div class="summary-row total-row"><span>Итого</span><span id="summaryTotal">0 ₽</span></div>
+      </div>
+
+      <div class="checkout-actions">
+        <button id="confirmOrderBtn" class="btn-confirm" type="button">Подтвердить заказ</button>
+        <button id="cancelOrderBtn" class="btn-cancel" type="button">Отмена</button>
+      </div>
+    </section>
+
+    <!-- Экран успешного заказа — ВНУТРЬ main -->
+    <section id="successView" class="view hidden">
+      <div class="success-content">
+        <div class="success-icon">✅</div>
+        <h2 class="success-title">Заказ оформлен!</h2>
+        <p class="success-order-number">Номер вашего заказа: <strong id="orderNumberDisplay"></strong></p>
+        <div class="success-details" id="successDetails"></div>
+        <button id="successCloseBtn" class="btn-primary" type="button" style="margin-top:20px;">Вернуться в каталог</button>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Нижняя навигация (остаётся вне main) -->
+  <nav id="tabbar" class="tabbar">
+    <button id="tabCatalog" class="tab active" type="button">
+      <span class="tab-icon">🏠</span><span class="tab-label">Каталог</span>
+    </button>
+    <button id="tabCart" class="tab" type="button">
+      <span class="tab-icon">🛒</span><span class="tab-label">Корзина</span>
+      <span id="cartBadge" class="badge hidden">0</span>
+    </button>
+  </nav>
+
+  <!-- Экран оформления заказа -->
+  <section id="checkoutView" class="view hidden">
+    <div class="checkout-header">
+      <button id="checkoutBack" class="back-btn" type="button" aria-label="Назад">
+        <span class="back-icon">←</span>
+      </button>
+      <h2 class="checkout-title">Оформление заказа</h2>
+    </div>
+
+    <div class="checkout-section">
+      <div class="checkout-section-title">Получение заказа</div>
+      <div class="pill-container">
+        <button class="pill active" data-delivery="pickup" type="button">Самовывоз</button>
+        <button class="pill" data-delivery="delivery" type="button">Доставка</button>
+      </div>
+      <div class="checkout-info-box" id="pickupInfo">
+        <span>Самовывоз с Лесной</span>
+        <span class="free-text">Бесплатно</span>
+      </div>
+      <div class="checkout-info-box hidden" id="deliveryInfo">
+        <span>Доставка по СПб</span>
+        <span class="free-text">Бесплатно</span>
+      </div>
+    </div>
+
+    <div class="checkout-section">
+      <div class="checkout-section-title">Дата</div>
+      <div class="scroll-x" id="dateScroll"></div>
+    </div>
+
+    <div class="checkout-section">
+      <div class="checkout-section-title">Время</div>
+      <div class="time-grid" id="timeGrid"></div>
+    </div>
+
+    <div class="checkout-section">
+      <div class="input-group">
+        <label>Станция метро <span class="required">*</span></label>
+        <input type="text" id="metroInput" list="metroList" placeholder="Адмиралтейская" autocomplete="off">
+        <datalist id="metroList"></datalist>
+      </div>
+    </div>
+
+    <div class="checkout-section">
+      <div class="input-group">
+        <label>Телефон <span class="required">*</span></label>
+        <div class="phone-input-row">
+          <input type="tel" id="phoneInput" placeholder="+7 900 000-00-00">
+          <button id="fromTelegramBtn" class="btn-secondary" type="button">Из Telegram</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="checkout-section">
+      <div class="input-group">
+        <label>Комментарий</label>
+        <textarea id="commentInput" placeholder="Пожелания к заказу..." rows="3"></textarea>
+      </div>
+    </div>
+
+    <div class="checkout-section">
+      <div class="input-group">
+        <label>Промокод</label>
+        <div class="promo-row">
+          <input type="text" id="promoInput" placeholder="Введите промокод">
+          <button id="applyPromoBtn" class="btn-secondary" type="button">Применить</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="checkout-summary">
+      <div class="summary-row">
+        <span>Товары</span>
+        <span id="summaryItems">0 ₽</span>
+      </div>
+      <div class="summary-row">
+        <span>Доставка</span>
+        <span class="free-text">Бесплатно</span>
+      </div>
+      <div class="summary-row total-row">
+        <span>Итого</span>
+        <span id="summaryTotal">0 ₽</span>
+      </div>
+    </div>
+
+    <div class="checkout-actions">
+      <button id="confirmOrderBtn" class="btn-confirm" type="button">Подтвердить заказ</button>
+      <button id="cancelOrderBtn" class="btn-cancel" type="button">Отмена</button>
+    </div>
+  </section>
+
+  <!-- Экран успешного заказа -->
+  <section id="successView" class="view hidden">
+    <div class="success-content">
+      <div class="success-icon">✅</div>
+      <h2 class="success-title">Заказ оформлен!</h2>
+      <p class="success-order-number">Номер вашего заказа: <strong id="orderNumberDisplay"></strong></p>
+      <div class="success-details" id="successDetails"></div>
+      <button id="successCloseBtn" class="btn-primary" type="button" style="margin-top: 20px;">Вернуться в каталог</button>
+    </div>
+  </section>
+
+  <script src="app.js"></script>
+</body>
+</html>
