@@ -5,8 +5,8 @@ const tg = window.Telegram?.WebApp;
 if (tg) {
   tg.ready();
   tg.expand();
-  tg.setHeaderColor?.('bg_color');
-  tg.setBackgroundColor?.('bg_color');
+  try { tg.setHeaderColor?.('bg_color'); } catch {}
+  try { tg.setBackgroundColor?.('bg_color'); } catch {}
 }
 
 if (tg?.initDataUnsafe?.user) {
@@ -17,10 +17,11 @@ if (tg?.initDataUnsafe?.user) {
 }
 
 /* ============================================================
-   Токен второго бота и Chat ID для отправки заказов
+   URL прокси-воркера для приёма заказов.
+   Токен бота и chat_id хранятся ТОЛЬКО на сервере.
+   Замените на свой URL после деплоя Cloudflare Worker
 ============================================================ */
-const TOKEN2 = 'YOUR_SECOND_BOT_TOKEN_HERE';
-const ADMIN_CHAT_ID2 = 'YOUR_ADMIN_CHAT_ID_HERE';
+const ORDER_PROXY_URL = 'https://YOUR-WORKER.workers.dev/order';
 
 /* ============================================================
    Хелперы
@@ -61,8 +62,7 @@ const PRODUCTS = [
     category: 'energy',
     title: 'Блю монстер',
     desc: 'тропик вайб для бедных',
-    fullDesc: 'Кстати тропический вкус почти у всех энергетиков есть. ' +
-      'Буквально почти у всех',
+    fullDesc: 'Кстати тропический вкус почти у всех энергетиков есть. Буквально почти у всех',
     price: 99,
     image: 'photos/energy/Blue-Monster.png',
   },
@@ -100,7 +100,7 @@ const PRODUCTS = [
     desc: 'Едимнственная нормальная',
     fullDesc: 'О боже, она такая нормальноотфотканная, необычная. Да ценник из-за этого выше',
     price: 9999,
-    image: 'photos/liq/Iceberg.png'
+    image: 'photos/liq/Iceberg.png',
   },
   {
     id: 6,
@@ -109,7 +109,7 @@ const PRODUCTS = [
     desc: 'Не, ну тут 2 красные',
     fullDesc: 'Реально, прикинь, 2 красные. Я сам ахуел',
     price: 666,
-    image: 'photos/liq/krasniy.png'
+    image: 'photos/liq/krasniy.png',
   },
   {
     id: 7,
@@ -118,7 +118,7 @@ const PRODUCTS = [
     desc: 'Я хз, ии злая манашка',
     fullDesc: 'Я их баюсь((',
     price: 1488,
-    image: 'photos/liq/5_zlih.png'
+    image: 'photos/liq/5_zlih.png',
   },
   {
     id: 8,
@@ -148,13 +148,14 @@ const PRODUCTS = [
     image: 'photos/liq/och_zlaya.png',
   }
 ];
+
 const PRODUCTS_BY_ID = new Map(PRODUCTS.map((p) => [p.id, p]));
 const PRODUCTS_BY_CATEGORY = PRODUCTS.reduce((acc, p) => {
   (acc[p.category] ||= []).push(p);
   return acc;
 }, {});
 
-function getFullDescription(p) { return p.fullDesc || p.fulldesc || p.desc || ''; }
+function getFullDescription(p) { return p.fullDesc || p.desc || ''; }
 function getProduct(id) { return PRODUCTS_BY_ID.get(Number(id)); }
 
 /* ============================================================
@@ -368,7 +369,11 @@ function showView(name) {
 }
 
 function setHeaderVisible(visible) { headerEl.classList.toggle('header--hidden', !visible); }
-function setTabbarVisible(visible) { tabbar.classList.toggle('hidden', !visible); }
+
+function setTabbarVisible(visible) {
+  tabbar.classList.toggle('hidden', !visible);
+  document.body.classList.toggle('no-tabbar', !visible);
+}
 
 function setActiveTab(tab) {
   const isCatalog = tab === 'catalog';
@@ -602,7 +607,6 @@ tabCart.addEventListener('click', showCart);
    ОФОРМЛЕНИЕ ЗАКАЗА (CHECKOUT)
 ============================================================ */
 function initCheckoutForm() {
-  // Сброс полей ввода и промокода между сессиями
   metroInput.value = '';
   phoneInput.value = '';
   commentInput.value = '';
@@ -612,7 +616,6 @@ function initCheckoutForm() {
   checkoutState.comment = '';
   checkoutState.promo = '';
 
-  // Сброс типа доставки на «Самовывоз»
   checkoutState.deliveryType = 'pickup';
   deliveryPills.forEach((b) => b.classList.toggle('active', b.dataset.delivery === 'pickup'));
   pickupInfoEl.classList.remove('hidden');
@@ -658,7 +661,6 @@ checkoutBtn.addEventListener('click', () => {
   showCheckout();
 });
 
-// Обработчик выбора типа доставки
 deliveryPills.forEach((btn) => {
   btn.addEventListener('click', () => {
     deliveryPills.forEach((b) => b.classList.toggle('active', b === btn));
@@ -671,7 +673,6 @@ deliveryPills.forEach((btn) => {
   });
 });
 
-// Обработчик выбора даты
 dateScroll.addEventListener('click', (e) => {
   const pill = e.target.closest('.date-pill');
   if (!pill) return;
@@ -680,7 +681,6 @@ dateScroll.addEventListener('click', (e) => {
   hapticSelection();
 });
 
-// Обработчик выбора времени
 timeGrid.addEventListener('click', (e) => {
   const btn = e.target.closest('.time-btn');
   if (!btn) return;
@@ -699,26 +699,21 @@ fromTelegramBtn.addEventListener('click', () => {
   }
 });
 
-// Обработчики полей ввода
 metroInput.addEventListener('input', (e) => { checkoutState.metro = e.target.value; });
 phoneInput.addEventListener('input', (e) => { checkoutState.phone = e.target.value; });
 commentInput.addEventListener('input', (e) => { checkoutState.comment = e.target.value; });
 promoInput.addEventListener('input', (e) => { checkoutState.promo = e.target.value; });
 
-// Применение промокода (заглушка)
 applyPromoBtn.addEventListener('click', () => {
   if (checkoutState.promo.trim() === '') return;
   tg?.showAlert?.('Промокод не найден или неактивен.');
 });
 
-// Отмена заказа
 cancelOrderBtn.addEventListener('click', showCart);
-
-// Возврат из оформления
 checkoutBack.addEventListener('click', showCart);
 
 /* ============================================================
-   ПОДТВЕРЖДЕНИЕ ЗАКАЗА И ОТПРАВКА В БОТА
+   ПОДТВЕРЖДЕНИЕ ЗАКАЗА И ОТПРАВКА ЧЕРЕЗ ПРОКСИ
 ============================================================ */
 function generateOrderNumber() {
   const date = new Date();
@@ -730,58 +725,25 @@ function generateOrderNumber() {
 }
 
 async function sendOrderToBot(order) {
-  if (TOKEN2 === 'YOUR_SECOND_BOT_TOKEN_HERE' || ADMIN_CHAT_ID2 === 'YOUR_ADMIN_CHAT_ID_HERE') {
-    console.warn('TOKEN2 или ADMIN_CHAT_ID2 не настроены. Заказ не отправлен в Telegram.');
-    return;
+  if (!ORDER_PROXY_URL || ORDER_PROXY_URL.includes('YOUR-WORKER')) {
+    console.warn('[order] ORDER_PROXY_URL не настроен — заказ сохранён только локально.');
+    return { ok: false, reason: 'not_configured' };
   }
-
-  const itemsText = order.items
-    .map((i) => `• ${escapeHtml(i.title)} (x${i.qty}) — ${i.sum} ₽`)
-    .join('\n');
-
-  const clientName = escapeHtml(order.user?.first_name || 'Аноним');
-  const clientId = order.user?.id || 'нет ID';
-
-  const text = `
-🛒 <b>Новый заказ №${escapeHtml(order.id)}</b>
-
-👤 <b>Клиент:</b> ${clientName} (${clientId})
-📞 <b>Телефон:</b> ${escapeHtml(order.phone)}
-🚇 <b>Метро:</b> ${escapeHtml(order.metro)}
-📦 <b>Тип:</b> ${order.deliveryType === 'pickup' ? 'Самовывоз' : 'Доставка'}
-📅 <b>Дата:</b> ${escapeHtml(order.date)}
-⏰ <b>Время:</b> ${escapeHtml(order.time)}
-💬 <b>Комментарий:</b> ${escapeHtml(order.comment || 'Нет')}
-
-<b>Товары:</b>
-${itemsText}
-
-💰 <b>Итого: ${order.total} ₽</b>
-  `;
-
   try {
-    const response = await fetch(`https://api.telegram.org/bot${TOKEN2}/sendMessage`, {
+    const res = await fetch(ORDER_PROXY_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: ADMIN_CHAT_ID2,
-        text,
-        parse_mode: 'HTML'
-      })
+      body: JSON.stringify(order),
     });
-    const data = await response.json();
-    if (!data.ok) {
-      console.error('Ошибка отправки в Telegram:', data);
-      tg?.showAlert?.('Не удалось отправить заказ. Мы свяжемся с вами вручную.');
-    }
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return await res.json();
   } catch (err) {
-    console.error('Сетевая ошибка при отправке заказа:', err);
-    tg?.showAlert?.('Не удалось отправить заказ. Мы свяжемся с вами вручную.');
+    console.error('[order] Ошибка отправки:', err);
+    return { ok: false, reason: 'network' };
   }
 }
 
 confirmOrderBtn.addEventListener('click', async () => {
-  // Валидация
   if (!checkoutState.metro.trim()) {
     tg?.showAlert?.('Пожалуйста, укажите станцию метро.');
     return;
@@ -819,10 +781,10 @@ confirmOrderBtn.addEventListener('click', async () => {
     comment: checkoutState.comment,
     promo: checkoutState.promo,
     createdAt: new Date().toISOString(),
-    user: tg?.initDataUnsafe?.user || null
+    user: tg?.initDataUnsafe?.user || null,
+    initData: tg?.initData || ''
   };
 
-  // Сохраняем заказ локально
   try {
     const savedOrders = JSON.parse(localStorage.getItem('user_orders') || '[]');
     savedOrders.push(order);
@@ -831,14 +793,16 @@ confirmOrderBtn.addEventListener('click', async () => {
     console.error('Ошибка сохранения заказа:', e);
   }
 
-  // Отправляем во второго бота
-  await sendOrderToBot(order);
+  const result = await sendOrderToBot(order);
+
+  if (!result?.ok && result?.reason === 'network') {
+    tg?.showAlert?.('Не удалось отправить заказ. Мы свяжемся с вами вручную.');
+  }
 
   cart = {};
   saveCart();
   updateCartUI();
 
-  // Экран успеха
   orderNumberDisplay.textContent = order.id;
   successDetails.innerHTML = `
     <div>Метро: <span>${escapeHtml(order.metro)}</span></div>
@@ -869,6 +833,7 @@ tg?.BackButton?.onClick?.(() => {
   else if (activeView === 'success') showCatalog();
   else tg?.close?.();
 });
+
 
 renderCategories();
 updateCartUI();
