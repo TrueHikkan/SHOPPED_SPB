@@ -672,3 +672,7 @@ body {
   color: var(--hint);
 }
 .success-details span { color: var(--text); font-weight: 600; }
+
+body.no-tabbar { padding-bottom: 0; }
+
+.checkout-actions { padding: 0 16px 40px; }
