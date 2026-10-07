@@ -10,7 +10,6 @@
   --button-text: var(--tg-theme-button-text-color, #ffffff);
   --card: var(--tg-theme-secondary-bg-color, #2c2c2e);
 
-  /* Синие акценты */
   --accent: var(--tg-theme-button-color, #0a84ff);
   --accent-bg: rgba(10, 132, 255, 0.12);
   --accent-border: rgba(10, 132, 255, 0.55);
@@ -567,6 +566,7 @@ body.no-tabbar { padding-bottom: 0; }
 }
 
 .input-group { display: flex; flex-direction: column; gap: 8px; }
+.input-group--top { margin-top: 14px; }
 
 .input-group label { font-size: 14px; font-weight: 600; color: var(--text); }
 
