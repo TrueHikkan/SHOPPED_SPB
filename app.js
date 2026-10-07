@@ -19,7 +19,7 @@ if (tg?.initDataUnsafe?.user) {
 /* ============================================================
    URL прокси-воркера
 ============================================================ */
-const ORDER_PROXY_URL = 'https://my-shop-order-proxy.tecnoakk10.workers.dev/order';
+const ORDER_PROXY_URL = 'https://shopped-worker.tecnoakk10.workers.dev/order';
 const ORDER_PROXY_CONFIGURED = !ORDER_PROXY_URL.includes('YOUR-WORKER');
 
 /* ============================================================
