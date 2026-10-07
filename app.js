@@ -48,9 +48,13 @@ const fmtPrice = (n) => n.toLocaleString('ru-RU');
 
 function scrollTop() {
   document.documentElement.scrollTop = 0;
-  document.body.scrollTop = 0;
+  if (document.body) document.body.scrollTop = 0;
 }
 
+/**
+ * Приводит ввод к формату +7 XXX XXX-XX-XX.
+ * Возвращает '' для пустого ввода, чтобы поле можно было полностью очистить.
+ */
 function formatPhone(raw) {
   let digits = String(raw || '').replace(/\D/g, '');
   if (digits.length === 0) return '';
@@ -348,7 +352,7 @@ const checkoutState = {
 };
 
 /* ============================================================
-   Кеш HTML
+   Кеш HTML-заготовок
 ============================================================ */
 let metroDatalistCache = '';
 function getMetroDatalist() {
@@ -672,7 +676,6 @@ function updateDeliveryBlocks() {
 }
 
 function initCheckoutForm() {
-  // Сброс полей
   metroInput.value = '';
   phoneInput.value = '';
   commentInput.value = '';
@@ -768,23 +771,34 @@ timeGrid.addEventListener('click', (e) => {
   hapticSelection();
 });
 
+/* -------- Кнопка «Из Telegram» -------- */
 fromTelegramBtn.addEventListener('click', () => {
-  const phone = tg?.initDataUnsafe?.user?.phone_number;
-  if (phone) {
-    const formatted = formatPhone(phone);
-    phoneInput.value = formatted;
-    checkoutState.phone = formatted;
-    if (isPhoneValid(formatted)) {
-      phoneInput.classList.remove('invalid');
-      phoneError.classList.add('hidden');
+  if (typeof tg?.requestContact !== 'function') {
+    tg?.showAlert?.('Ваш Telegram не поддерживает эту функцию. Введите номер вручную.');
+    return;
+  }
+  tg.requestContact((shared) => {
+    if (!shared) {
+      tg?.showAlert?.('Вы отклонили запрос. Введите номер вручную.');
     }
-  } else {
-    tg?.showAlert?.('Telegram не предоставил номер телефона. Введите вручную.');
+  });
+});
+
+// Событие приходит, когда пользователь поделился контактом
+tg?.onEvent?.('contactRequested', (event) => {
+  if (event?.status !== 'sent') return;
+  const phone = tg?.initDataUnsafe?.user?.phone_number;
+  if (!phone) return;
+  const formatted = formatPhone(phone);
+  phoneInput.value = formatted;
+  checkoutState.phone = formatted;
+  if (isPhoneValid(formatted)) {
+    phoneInput.classList.remove('invalid');
+    phoneError.classList.add('hidden');
   }
 });
 
 /* -------- Валидация метро -------- */
-
 metroInput.addEventListener('input', (e) => {
   checkoutState.metro = e.target.value;
   const v = e.target.value.trim();
@@ -813,7 +827,6 @@ phoneInput.addEventListener('input', (e) => {
   const formatted = formatPhone(e.target.value);
   e.target.value = formatted;
   checkoutState.phone = formatted;
-
 
   if (isPhoneValid(formatted)) {
     phoneInput.classList.remove('invalid');
@@ -872,9 +885,7 @@ async function sendOrderToBot(order) {
 }
 
 confirmOrderBtn.addEventListener('click', async () => {
-   
   /* ---- Валидация ---- */
-   
   if (checkoutState.deliveryType === 'pickup' && !PICKUP_STATIONS_SET.has(checkoutState.pickupStation)) {
     tg?.showAlert?.('Выберите станцию самовывоза.');
     return;
@@ -962,11 +973,16 @@ confirmOrderBtn.addEventListener('click', async () => {
     ? `Самовывоз: ${escapeHtml(order.pickupStation)}`
     : `Метро: ${escapeHtml(order.metro)}`;
 
+  const usernameLine = order.user?.username
+    ? `<div>Username: <span>@${escapeHtml(order.user.username)}</span></div>`
+    : '';
+
   orderNumberDisplay.textContent = order.id;
   successDetails.innerHTML = `
     <div>${pickupOrMetro}</div>
     <div>Дата и время: <span>${escapeHtml(order.date)}, ${escapeHtml(order.time)}</span></div>
     <div>Телефон: <span>${escapeHtml(order.phone)}</span></div>
+    ${usernameLine}
     <div>Сумма: <span>${fmtPrice(order.total)} ₽</span></div>
   `;
 
