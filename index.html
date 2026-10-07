@@ -74,7 +74,6 @@
         <h2 class="checkout-title">Оформление заказа</h2>
       </div>
 
-      <!-- Получение заказа -->
       <div class="checkout-section">
         <div class="checkout-section-title">Получение заказа</div>
         <div class="pill-container">
@@ -82,25 +81,23 @@
           <button class="pill" data-delivery="delivery" type="button">Доставка</button>
         </div>
 
-        <!-- Блок самовывоза -->
         <div id="pickupBlock" class="conditional-block">
           <div class="conditional-label">Станция самовывоза <span class="required">*</span></div>
           <div class="pill-container" id="pickupStations"></div>
-          <div class="checkout-info-box" style="margin-top:10px;">
+          <div class="checkout-info-box">
             <span>Самовывоз</span>
             <span class="free-text">Бесплатно</span>
           </div>
         </div>
 
-        <!-- Блок доставки -->
         <div id="deliveryBlock" class="conditional-block hidden">
-          <div class="input-group" style="margin-top:14px;">
+          <div class="input-group input-group--top">
             <label for="metroInput">Станция метро <span class="required">*</span></label>
             <input type="text" id="metroInput" list="metroList" placeholder="Начните вводить..." autocomplete="off">
             <datalist id="metroList"></datalist>
             <div class="input-error hidden" id="metroError">Выберите станцию из списка</div>
           </div>
-          <div class="checkout-info-box" style="margin-top:10px;">
+          <div class="checkout-info-box">
             <span>Доставка по СПб</span>
             <span class="free-text">Бесплатно</span>
           </div>
