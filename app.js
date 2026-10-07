@@ -17,11 +17,10 @@ if (tg?.initDataUnsafe?.user) {
 }
 
 /* ============================================================
-   URL прокси-воркера для приёма заказов.
-   Токен бота и chat_id хранятся ТОЛЬКО на сервере.
-   Замените на свой URL после деплоя Cloudflare Worker
+   URL прокси-воркера
 ============================================================ */
-const ORDER_PROXY_URL = 'https://my-shop-order-proxy.tecnoakk10.workers.dev';
+const ORDER_PROXY_URL = 'https://my-shop-order-proxy.tecnoakk10.workers.dev/order';
+const ORDER_PROXY_CONFIGURED = !ORDER_PROXY_URL.includes('YOUR-WORKER');
 
 /* ============================================================
    Хелперы
@@ -34,7 +33,7 @@ function hapticSelection() { tg?.HapticFeedback?.selectionChanged?.(); }
 
 const ESCAPE_MAP = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
 function escapeHtml(str) {
-  return String(str).replace(/[&<>"']/g, (ch) => ESCAPE_MAP[ch]);
+  return String(str ?? '').replace(/[&<>"']/g, (ch) => ESCAPE_MAP[ch]);
 }
 
 function plural(n, one, few, many) {
@@ -46,6 +45,27 @@ function plural(n, one, few, many) {
 }
 
 const fmtPrice = (n) => n.toLocaleString('ru-RU');
+
+function scrollTop() {
+  document.documentElement.scrollTop = 0;
+  document.body.scrollTop = 0;
+}
+
+function formatPhone(raw) {
+  let digits = String(raw || '').replace(/\D/g, '');
+  if (digits.length === 0) return '';
+  if (digits.startsWith('8')) digits = '7' + digits.slice(1);
+  if (!digits.startsWith('7')) digits = '7' + digits;
+  digits = digits.slice(0, 11);
+  let out = '+7';
+  if (digits.length > 1) out += ' ' + digits.slice(1, 4);
+  if (digits.length > 4) out += ' ' + digits.slice(4, 7);
+  if (digits.length > 7) out += '-' + digits.slice(7, 9);
+  if (digits.length > 9) out += '-' + digits.slice(9, 11);
+  return out;
+}
+
+const isPhoneValid = (phone) => String(phone || '').replace(/\D/g, '').length === 11;
 
 /* ============================================================
    Категории и Товары
@@ -155,8 +175,36 @@ const PRODUCTS_BY_CATEGORY = PRODUCTS.reduce((acc, p) => {
   return acc;
 }, {});
 
-function getFullDescription(p) { return p.fullDesc || p.desc || ''; }
-function getProduct(id) { return PRODUCTS_BY_ID.get(Number(id)); }
+const getFullDescription = (p) => p.fullDesc || p.desc || '';
+const getProduct = (id) => PRODUCTS_BY_ID.get(Number(id));
+
+/* ============================================================
+   Данные для оформления заказа
+============================================================ */
+const PICKUP_STATIONS = [
+  'Комендантский проспект',
+  'Удельная',
+  'Пионерская'
+];
+const PICKUP_STATIONS_SET = new Set(PICKUP_STATIONS);
+
+const SPB_METRO_STATIONS = [
+  "Автово", "Адмиралтейская", "Академическая", "Балтийская", "Бухарестская",
+  "Василеостровская", "Владимирская", "Волковская", "Выборгская", "Горьковская",
+  "Гостиный двор", "Гражданский проспект", "Девяткино", "Достоевская", "Елизаровская",
+  "Звенигородская", "Зенит", "Кировский завод", "Комендантский проспект", "Крестовский остров",
+  "Купчино", "Ладожская", "Ленинский проспект", "Лесная", "Лиговский проспект",
+  "Ломоносовская", "Маяковская", "Международная", "Московская", "Московские ворота",
+  "Нарвская", "Невский проспект", "Новочеркасская", "Обводный канал", "Обухово",
+  "Озерки", "Парк Победы", "Парнас", "Петроградская", "Пионерская",
+  "Площадь Александра Невского", "Площадь Восстания", "Площадь Ленина", "Площадь Мужества",
+  "Политехническая", "Приморская", "Пролетарская", "Проспект Большевиков", "Проспект Ветеранов",
+  "Проспект Просвещения", "Пушкинская", "Рыбацкое", "Садовая", "Сенная площадь",
+  "Спасская", "Спортивная", "Старая Деревня", "Технологический институт", "Удельная",
+  "Улица Дыбенко", "Фрунзенская", "Черная речка", "Чернышевская", "Чкаловская",
+  "Электросила"
+];
+const SPB_METRO_SET = new Set(SPB_METRO_STATIONS);
 
 /* ============================================================
    Корзина (localStorage)
@@ -169,12 +217,12 @@ function loadCart() {
     const raw = JSON.parse(localStorage.getItem(STORAGE_KEY));
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
     const clean = {};
-    Object.entries(raw).forEach(([id, qty]) => {
+    for (const [id, qty] of Object.entries(raw)) {
       const n = Math.floor(Number(qty));
       if (Number.isFinite(n) && n > 0 && PRODUCTS_BY_ID.has(Number(id))) {
         clean[id] = n;
       }
-    });
+    }
     return clean;
   } catch { return {}; }
 }
@@ -260,7 +308,9 @@ const dateScroll = $('#dateScroll');
 const timeGrid = $('#timeGrid');
 const metroInput = $('#metroInput');
 const metroList = $('#metroList');
+const metroError = $('#metroError');
 const phoneInput = $('#phoneInput');
+const phoneError = $('#phoneError');
 const fromTelegramBtn = $('#fromTelegramBtn');
 const commentInput = $('#commentInput');
 const promoInput = $('#promoInput');
@@ -273,8 +323,9 @@ const orderNumberDisplay = $('#orderNumberDisplay');
 const successDetails = $('#successDetails');
 const successCloseBtn = $('#successCloseBtn');
 
-const pickupInfoEl = $('#pickupInfo');
-const deliveryInfoEl = $('#deliveryInfo');
+const pickupBlock = $('#pickupBlock');
+const deliveryBlock = $('#deliveryBlock');
+const pickupStationsEl = $('#pickupStations');
 const deliveryPills = checkoutView.querySelectorAll('[data-delivery]');
 
 /* ============================================================
@@ -285,8 +336,9 @@ let currentCategoryId = null;
 let currentProductId = null;
 let detailOrigin = 'catalog';
 
-let checkoutState = {
+const checkoutState = {
   deliveryType: 'pickup',
+  pickupStation: '',
   date: '',
   time: '',
   metro: '',
@@ -296,30 +348,25 @@ let checkoutState = {
 };
 
 /* ============================================================
-   Данные для оформления заказа
+   Кеш HTML
 ============================================================ */
-const SPB_METRO_STATIONS = [
-  "Автово", "Адмиралтейская", "Академическая", "Балтийская", "Бухарестская",
-  "Василеостровская", "Владимирская", "Волковская", "Выборгская", "Горьковская",
-  "Гостиный двор", "Гражданский проспект", "Девяткино", "Достоевская", "Елизаровская",
-  "Звенигородская", "Зенит", "Кировский завод", "Комендантский проспект", "Крестовский остров",
-  "Купчино", "Ладожская", "Ленинский проспект", "Лесная", "Лиговский проспект",
-  "Ломоносовская", "Маяковская", "Международная", "Московская", "Московские ворота",
-  "Нарвская", "Невский проспект", "Новочеркасская", "Обводный канал", "Обухово",
-  "Озерки", "Парк Победы", "Парнас", "Петроградская", "Пионерская",
-  "Площадь Александра Невского", "Площадь Восстания", "Площадь Ленина", "Площадь Мужества",
-  "Политехническая", "Приморская", "Пролетарская", "Проспект Большевиков", "Проспект Ветеранов",
-  "Проспект Просвещения", "Пушкинская", "Рыбацкое", "Садовая", "Сенная площадь",
-  "Спасская", "Спортивная", "Старая Деревня", "Технологический институт", "Удельная",
-  "Улица Дыбенко", "Фрунзенская", "Черная речка", "Чернышевская", "Чкаловская",
-  "Электросила"
-];
+let metroDatalistCache = '';
+function getMetroDatalist() {
+  if (!metroDatalistCache) {
+    metroDatalistCache = SPB_METRO_STATIONS
+      .map((s) => `<option value="${escapeHtml(s)}">`)
+      .join('');
+  }
+  return metroDatalistCache;
+}
 
+/* ============================================================
+   Генераторы дат и времени
+============================================================ */
 function generateDates() {
   const dates = [];
   const days = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
   const today = new Date();
-
   for (let i = 0; i < 7; i++) {
     const d = new Date(today);
     d.setDate(today.getDate() + i);
@@ -336,7 +383,6 @@ function generateTimes() {
   const times = [];
   for (let h = 18; h <= 23; h++) {
     for (let m = 0; m < 60; m += 30) {
-      if (h === 23 && m > 30) continue;
       const hourStr = String(h).padStart(2, '0');
       const minStr = String(m).padStart(2, '0');
       const isHalf = m === 30;
@@ -392,13 +438,13 @@ function productCardHTML(p) {
   return `
     <div class="product-card" data-id="${p.id}">
       <img src="${image}" alt="${title}" loading="lazy"
-        onerror="this.style.background='rgba(128,128,128,.15)'; this.alt='📷'; this.removeAttribute('src');" />
+        onerror="this.style.background='rgba(128,128,128,.15)';this.alt='📷';this.removeAttribute('src');" />
       <div class="product-info">
         <div class="product-title">${title}</div>
         <div class="product-desc">${desc}</div>
         <div class="product-row">
           <div class="product-price">${price} ₽</div>
-          <button class="add-btn" data-add="${p.id}" type="button" aria-label="Добавить">+</button>
+          <button class="add-btn" data-add="${p.id}" type="button" aria-label="Добавить в корзину">+</button>
         </div>
       </div>
     </div>
@@ -406,7 +452,7 @@ function productCardHTML(p) {
 }
 
 /* ============================================================
-   ГЛАВНОЕ МЕНЮ — категории
+   ГЛАВНОЕ МЕНЮ
 ============================================================ */
 function renderCategories() {
   categoriesEl.innerHTML = CATEGORIES.map((cat) => {
@@ -431,7 +477,7 @@ function showCatalog() {
   setTabbarVisible(true);
   setHeaderVisible(true);
   setActiveTab('catalog');
-  window.scrollTo(0, 0);
+  scrollTop();
   tg?.BackButton?.hide?.();
 }
 
@@ -462,7 +508,7 @@ function openCategory(id, scrollToTop = true) {
   setTabbarVisible(true);
   setHeaderVisible(false);
   setActiveTab('catalog');
-  if (scrollToTop) window.scrollTo(0, 0);
+  if (scrollToTop) scrollTop();
   tg?.BackButton?.show?.();
 }
 
@@ -481,7 +527,7 @@ categoryProductsEl.addEventListener('click', (e) => {
 });
 
 /* ============================================================
-   ПОДРОБНОЕ ОПИСАНИЕ ТОВАРА
+   ДЕТАЛЬНЫЙ ЭКРАН
 ============================================================ */
 function renderDetail(p) {
   detailTitle.textContent = p.title;
@@ -507,7 +553,7 @@ function openDetail(id, origin = 'catalog') {
   showView('detail');
   setTabbarVisible(false);
   setHeaderVisible(false);
-  window.scrollTo(0, 0);
+  scrollTop();
   tg?.BackButton?.show?.();
 }
 
@@ -529,7 +575,7 @@ detailAdd.addEventListener('click', () => {
 });
 
 /* ============================================================
-   КОРЗИНА — экран
+   КОРЗИНА
 ============================================================ */
 function showCart() {
   showView('cart');
@@ -537,7 +583,7 @@ function showCart() {
   setHeaderVisible(true);
   setActiveTab('cart');
   renderCart();
-  window.scrollTo(0, 0);
+  scrollTop();
   tg?.BackButton?.hide?.();
 }
 
@@ -548,6 +594,7 @@ function renderCart() {
     cartItemsEl.innerHTML = '';
     cartEmptyEl.classList.remove('hidden');
     cartFooterEl.classList.add('hidden');
+    cartView.classList.remove('cart-has-footer');
     totalPriceEl.textContent = '0 ₽';
     checkoutBtn.disabled = true;
     return;
@@ -555,23 +602,28 @@ function renderCart() {
 
   cartEmptyEl.classList.add('hidden');
   cartFooterEl.classList.remove('hidden');
+  cartView.classList.add('cart-has-footer');
   checkoutBtn.disabled = false;
 
-  cartItemsEl.innerHTML = entries.map((item) => `
-    <div class="cart-item">
-      <img src="${escapeHtml(item.image)}" alt="${escapeHtml(item.title)}" />
-      <div class="cart-item-info">
-        <div class="cart-item-title">${escapeHtml(item.title)}</div>
-        <div class="cart-item-price">${fmtPrice(item.price)} ₽</div>
-        <div class="qty">
-          <button data-action="dec" data-id="${item.id}" type="button">−</button>
-          <span>${item.qty}</span>
-          <button data-action="inc" data-id="${item.id}" type="button">+</button>
+  cartItemsEl.innerHTML = entries.map((item) => {
+    const sum = item.price * item.qty;
+    return `
+      <div class="cart-item">
+        <img src="${escapeHtml(item.image)}" alt="${escapeHtml(item.title)}"
+          onerror="this.onerror=null;this.style.background='rgba(128,128,128,.15)';this.alt='📷';this.removeAttribute('src');" />
+        <div class="cart-item-info">
+          <div class="cart-item-title">${escapeHtml(item.title)}</div>
+          <div class="cart-item-price">${fmtPrice(item.price)} ₽</div>
+          <div class="qty">
+            <button data-action="dec" data-id="${item.id}" type="button" aria-label="Убавить">−</button>
+            <span>${item.qty}</span>
+            <button data-action="inc" data-id="${item.id}" type="button" aria-label="Прибавить">+</button>
+          </div>
         </div>
+        <div class="item-total">${fmtPrice(sum)} ₽</div>
       </div>
-      <div class="item-total">${fmtPrice(item.price * item.qty)} ₽</div>
-    </div>
-  `).join('');
+    `;
+  }).join('');
 
   totalPriceEl.textContent = fmtPrice(getTotalPrice()) + ' ₽';
 }
@@ -596,7 +648,7 @@ function updateBadge() {
 }
 
 function updateCartUI() {
-  renderCart();
+  if (activeView === 'cart') renderCart();
   updateBadge();
 }
 
@@ -604,24 +656,45 @@ tabCatalog.addEventListener('click', showCatalog);
 tabCart.addEventListener('click', showCart);
 
 /* ============================================================
-   ОФОРМЛЕНИЕ ЗАКАЗА (CHECKOUT)
+   ОФОРМЛЕНИЕ ЗАКАЗА
 ============================================================ */
+function renderPickupStations() {
+  pickupStationsEl.innerHTML = PICKUP_STATIONS.map((s) => `
+    <button class="pill ${checkoutState.pickupStation === s ? 'active' : ''}"
+      data-pickup="${escapeHtml(s)}" type="button">${escapeHtml(s)}</button>
+  `).join('');
+}
+
+function updateDeliveryBlocks() {
+  const isPickup = checkoutState.deliveryType === 'pickup';
+  pickupBlock.classList.toggle('hidden', !isPickup);
+  deliveryBlock.classList.toggle('hidden', isPickup);
+}
+
 function initCheckoutForm() {
+  // Сброс полей
   metroInput.value = '';
   phoneInput.value = '';
   commentInput.value = '';
   promoInput.value = '';
+
   checkoutState.metro = '';
   checkoutState.phone = '';
   checkoutState.comment = '';
   checkoutState.promo = '';
+  checkoutState.pickupStation = '';
+
+  metroInput.classList.remove('invalid');
+  phoneInput.classList.remove('invalid');
+  metroError.classList.add('hidden');
+  phoneError.classList.add('hidden');
 
   checkoutState.deliveryType = 'pickup';
   deliveryPills.forEach((b) => b.classList.toggle('active', b.dataset.delivery === 'pickup'));
-  pickupInfoEl.classList.remove('hidden');
-  deliveryInfoEl.classList.add('hidden');
+  updateDeliveryBlocks();
+  renderPickupStations();
 
-  metroList.innerHTML = SPB_METRO_STATIONS.map((s) => `<option value="${s}">`).join('');
+  metroList.innerHTML = getMetroDatalist();
 
   const dates = generateDates();
   dateScroll.innerHTML = dates.map((d, i) => `
@@ -632,8 +705,7 @@ function initCheckoutForm() {
   `).join('');
   checkoutState.date = dates[0].date;
 
-  const times = generateTimes();
-  timeGrid.innerHTML = times.map((t) => `
+  timeGrid.innerHTML = generateTimes().map((t) => `
     <button class="time-btn" data-time="${t}" type="button">${t}</button>
   `).join('');
   checkoutState.time = '';
@@ -651,7 +723,7 @@ function showCheckout() {
   showView('checkout');
   setTabbarVisible(false);
   setHeaderVisible(false);
-  window.scrollTo(0, 0);
+  scrollTop();
   tg?.BackButton?.show?.();
   initCheckoutForm();
 }
@@ -663,14 +735,21 @@ checkoutBtn.addEventListener('click', () => {
 
 deliveryPills.forEach((btn) => {
   btn.addEventListener('click', () => {
+    if (checkoutState.deliveryType === btn.dataset.delivery) return;
     deliveryPills.forEach((b) => b.classList.toggle('active', b === btn));
     checkoutState.deliveryType = btn.dataset.delivery;
-
-    const isPickup = checkoutState.deliveryType === 'pickup';
-    pickupInfoEl.classList.toggle('hidden', !isPickup);
-    deliveryInfoEl.classList.toggle('hidden', isPickup);
+    updateDeliveryBlocks();
     hapticSelection();
   });
+});
+
+pickupStationsEl.addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-pickup]');
+  if (!btn) return;
+  checkoutState.pickupStation = btn.dataset.pickup;
+  pickupStationsEl.querySelectorAll('[data-pickup]')
+    .forEach((b) => b.classList.toggle('active', b === btn));
+  hapticSelection();
 });
 
 dateScroll.addEventListener('click', (e) => {
@@ -692,15 +771,64 @@ timeGrid.addEventListener('click', (e) => {
 fromTelegramBtn.addEventListener('click', () => {
   const phone = tg?.initDataUnsafe?.user?.phone_number;
   if (phone) {
-    phoneInput.value = phone;
-    checkoutState.phone = phone;
+    const formatted = formatPhone(phone);
+    phoneInput.value = formatted;
+    checkoutState.phone = formatted;
+    if (isPhoneValid(formatted)) {
+      phoneInput.classList.remove('invalid');
+      phoneError.classList.add('hidden');
+    }
   } else {
     tg?.showAlert?.('Telegram не предоставил номер телефона. Введите вручную.');
   }
 });
 
-metroInput.addEventListener('input', (e) => { checkoutState.metro = e.target.value; });
-phoneInput.addEventListener('input', (e) => { checkoutState.phone = e.target.value; });
+/* -------- Валидация метро -------- */
+
+metroInput.addEventListener('input', (e) => {
+  checkoutState.metro = e.target.value;
+  const v = e.target.value.trim();
+  if (SPB_METRO_SET.has(v)) {
+    metroInput.classList.remove('invalid');
+    metroError.classList.add('hidden');
+  }
+});
+
+metroInput.addEventListener('blur', () => {
+  const v = metroInput.value.trim();
+  if (v !== metroInput.value) metroInput.value = v;
+  checkoutState.metro = v;
+
+  if (v && !SPB_METRO_SET.has(v)) {
+    metroInput.classList.add('invalid');
+    metroError.classList.remove('hidden');
+  } else {
+    metroInput.classList.remove('invalid');
+    metroError.classList.add('hidden');
+  }
+});
+
+/* -------- Маска телефона -------- */
+phoneInput.addEventListener('input', (e) => {
+  const formatted = formatPhone(e.target.value);
+  e.target.value = formatted;
+  checkoutState.phone = formatted;
+
+
+  if (isPhoneValid(formatted)) {
+    phoneInput.classList.remove('invalid');
+    phoneError.classList.add('hidden');
+  }
+});
+
+phoneInput.addEventListener('blur', () => {
+  const v = phoneInput.value.trim();
+  if (v && !isPhoneValid(v)) {
+    phoneInput.classList.add('invalid');
+    phoneError.classList.remove('hidden');
+  }
+});
+
 commentInput.addEventListener('input', (e) => { checkoutState.comment = e.target.value; });
 promoInput.addEventListener('input', (e) => { checkoutState.promo = e.target.value; });
 
@@ -713,7 +841,7 @@ cancelOrderBtn.addEventListener('click', showCart);
 checkoutBack.addEventListener('click', showCart);
 
 /* ============================================================
-   ПОДТВЕРЖДЕНИЕ ЗАКАЗА И ОТПРАВКА ЧЕРЕЗ ПРОКСИ
+   ПОДТВЕРЖДЕНИЕ ЗАКАЗА
 ============================================================ */
 function generateOrderNumber() {
   const date = new Date();
@@ -725,7 +853,7 @@ function generateOrderNumber() {
 }
 
 async function sendOrderToBot(order) {
-  if (!ORDER_PROXY_URL || ORDER_PROXY_URL.includes('YOUR-WORKER')) {
+  if (!ORDER_PROXY_CONFIGURED) {
     console.warn('[order] ORDER_PROXY_URL не настроен — заказ сохранён только локально.');
     return { ok: false, reason: 'not_configured' };
   }
@@ -744,24 +872,45 @@ async function sendOrderToBot(order) {
 }
 
 confirmOrderBtn.addEventListener('click', async () => {
-  if (!checkoutState.metro.trim()) {
-    tg?.showAlert?.('Пожалуйста, укажите станцию метро.');
+   
+  /* ---- Валидация ---- */
+   
+  if (checkoutState.deliveryType === 'pickup' && !PICKUP_STATIONS_SET.has(checkoutState.pickupStation)) {
+    tg?.showAlert?.('Выберите станцию самовывоза.');
     return;
   }
-  if (!checkoutState.phone.trim()) {
-    tg?.showAlert?.('Пожалуйста, укажите номер телефона.');
+
+  if (checkoutState.deliveryType === 'delivery') {
+    const metroValue = metroInput.value.trim();
+    if (!metroValue || !SPB_METRO_SET.has(metroValue)) {
+      metroInput.classList.add('invalid');
+      metroError.classList.remove('hidden');
+      tg?.showAlert?.('Выберите станцию метро из списка.');
+      return;
+    }
+  }
+
+  const phoneValue = phoneInput.value.trim();
+  if (!isPhoneValid(phoneValue)) {
+    phoneInput.classList.add('invalid');
+    phoneError.classList.remove('hidden');
+    tg?.showAlert?.('Введите корректный номер телефона.');
     return;
   }
+
   if (!checkoutState.time) {
     tg?.showAlert?.('Пожалуйста, выберите время.');
     return;
   }
 
+  /* ---- Формирование заказа ---- */
   confirmOrderBtn.disabled = true;
+  confirmOrderBtn.textContent = 'Отправка…';
 
   const items = getCartEntries();
   const orderId = generateOrderNumber();
   const orderTotal = getTotalPrice();
+  const tgUser = tg?.initDataUnsafe?.user || null;
 
   const order = {
     id: orderId,
@@ -774,14 +923,20 @@ confirmOrderBtn.addEventListener('click', async () => {
     })),
     total: orderTotal,
     deliveryType: checkoutState.deliveryType,
+    pickupStation: checkoutState.deliveryType === 'pickup' ? checkoutState.pickupStation : '',
+    metro: checkoutState.deliveryType === 'delivery' ? metroInput.value.trim() : '',
     date: checkoutState.date,
     time: checkoutState.time,
-    metro: checkoutState.metro,
-    phone: checkoutState.phone,
+    phone: phoneValue,
     comment: checkoutState.comment,
     promo: checkoutState.promo,
     createdAt: new Date().toISOString(),
-    user: tg?.initDataUnsafe?.user || null,
+    user: tgUser ? {
+      id: tgUser.id,
+      first_name: tgUser.first_name || '',
+      last_name: tgUser.last_name || '',
+      username: tgUser.username || ''
+    } : null,
     initData: tg?.initData || ''
   };
 
@@ -803,15 +958,20 @@ confirmOrderBtn.addEventListener('click', async () => {
   saveCart();
   updateCartUI();
 
+  const pickupOrMetro = order.deliveryType === 'pickup'
+    ? `Самовывоз: ${escapeHtml(order.pickupStation)}`
+    : `Метро: ${escapeHtml(order.metro)}`;
+
   orderNumberDisplay.textContent = order.id;
   successDetails.innerHTML = `
-    <div>Метро: <span>${escapeHtml(order.metro)}</span></div>
+    <div>${pickupOrMetro}</div>
     <div>Дата и время: <span>${escapeHtml(order.date)}, ${escapeHtml(order.time)}</span></div>
     <div>Телефон: <span>${escapeHtml(order.phone)}</span></div>
     <div>Сумма: <span>${fmtPrice(order.total)} ₽</span></div>
   `;
 
   confirmOrderBtn.disabled = false;
+  confirmOrderBtn.textContent = 'Подтвердить заказ';
 
   showView('success');
   setTabbarVisible(false);
@@ -834,7 +994,9 @@ tg?.BackButton?.onClick?.(() => {
   else tg?.close?.();
 });
 
-
+/* ============================================================
+   Инициализация
+============================================================ */
 renderCategories();
 updateCartUI();
 showCatalog();
