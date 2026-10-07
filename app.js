@@ -51,10 +51,6 @@ function scrollTop() {
   if (document.body) document.body.scrollTop = 0;
 }
 
-/**
- * Приводит ввод к формату +7 XXX XXX-XX-XX.
- * Возвращает '' для пустого ввода, чтобы поле можно было полностью очистить.
- */
 function formatPhone(raw) {
   let digits = String(raw || '').replace(/\D/g, '');
   if (digits.length === 0) return '';
@@ -81,96 +77,35 @@ const CATEGORIES = [
 ];
 
 const PRODUCTS = [
-  {
-    id: 1,
-    category: 'energy',
-    title: 'Блю монстер',
-    desc: 'тропик вайб для бедных',
+  { id: 1, category: 'energy', title: 'Блю монстер', desc: 'тропик вайб для бедных',
     fullDesc: 'Кстати тропический вкус почти у всех энергетиков есть. Буквально почти у всех',
-    price: 99,
-    image: 'photos/energy/Blue-Monster.png',
-  },
-  {
-    id: 2,
-    category: 'energy',
-    title: 'Черная пародия на редбулл',
-    desc: 'дороже редбулла',
-    fullDesc: 'У меня он дороже редбулла, говно(((',
-    price: 1000,
-    image: 'photos/energy/Classic-Monster.png',
-  },
-  {
-    id: 3,
-    category: 'energy',
-    title: 'Розовый, но не для пидорасов',
-    desc: 'Для пидорасов — белый',
+    price: 99, image: 'photos/energy/Blue-Monster.png' },
+  { id: 2, category: 'energy', title: 'Черная пародия на редбулл', desc: 'дороже редбулла',
+    fullDesc: 'У меня он дороже редбулла, говно((((',
+    price: 1000, image: 'photos/energy/Classic-Monster.png' },
+  { id: 3, category: 'energy', title: 'Розовый, но не для пидорасов', desc: 'Для пидорасов — белый',
     fullDesc: 'типа дахуя женственный цвет, хаха смешно типа',
-    price: 333,
-    image: 'photos/energy/Pink-Monster.png',
-  },
-  {
-    id: 4,
-    category: 'energy',
-    title: 'О да папочка, бей меня сильнее',
-    desc: 'ДИСКЛЕЙМЕР: ТОЛЬКО ДЛЯ ФЕМБОЕВ',
+    price: 333, image: 'photos/energy/Pink-Monster.png' },
+  { id: 4, category: 'energy', title: 'О да папочка, бей меня сильнее', desc: 'ДИСКЛЕЙМЕР: ТОЛЬКО ДЛЯ ФЕМБОЕВ',
     fullDesc: 'Если вы хотите чтобы вас изнасиловали в подворотне',
-    price: 6767,
-    image: 'photos/energy/White-Monster.png',
-  },
-  {
-    id: 5,
-    category: 'liq',
-    title: 'Iceberg',
-    desc: 'Едимнственная нормальная',
+    price: 6767, image: 'photos/energy/White-Monster.png' },
+  { id: 5, category: 'liq', title: 'Iceberg', desc: 'Единственная нормальная',
     fullDesc: 'О боже, она такая нормальноотфотканная, необычная. Да ценник из-за этого выше',
-    price: 9999,
-    image: 'photos/liq/Iceberg.png',
-  },
-  {
-    id: 6,
-    category: 'liq',
-    title: 'Красные',
-    desc: 'Не, ну тут 2 красные',
+    price: 9999, image: 'photos/liq/Iceberg.png' },
+  { id: 6, category: 'liq', title: 'Красные', desc: 'Не, ну тут 2 красные',
     fullDesc: 'Реально, прикинь, 2 красные. Я сам ахуел',
-    price: 666,
-    image: 'photos/liq/krasniy.png',
-  },
-  {
-    id: 7,
-    category: 'liq',
-    title: 'чё злые(',
-    desc: 'Я хз, ии злая манашка',
-    fullDesc: 'Я их баюсь((',
-    price: 1488,
-    image: 'photos/liq/5_zlih.png',
-  },
-  {
-    id: 8,
-    category: 'liq',
-    title: 'Зелёные',
-    desc: 'Тут реально зелёные',
+    price: 666, image: 'photos/liq/krasniy.png' },
+  { id: 7, category: 'liq', title: 'чё злые(', desc: 'Я хз, ии злая манашка',
+    fullDesc: 'Я их баюсь((', price: 1488, image: 'photos/liq/5_zlih.png' },
+  { id: 8, category: 'liq', title: 'Зелёные', desc: 'Тут реально зелёные',
     fullDesc: 'Ты не понял, тут РЕАЛЬНО зелёные',
-    price: 777,
-    image: 'photos/liq/zeleny.png',
-  },
-  {
-    id: 9,
-    category: 'liq',
-    title: 'ЗЛАЯ монашка',
-    desc: 'РЕАЛЬНО ЗЛАЯ МОНАШКА',
+    price: 777, image: 'photos/liq/zeleny.png' },
+  { id: 9, category: 'liq', title: 'ЗЛАЯ монашка', desc: 'РЕАЛЬНО ЗЛАЯ МОНАШКА',
     fullDesc: 'ТИПА ТЫ НЕ ПОНЯЛ, ТУТ РЕАЛЬНО ЗЛАЯ МОНАШКА',
-    price: 666666,
-    image: 'photos/liq/zlaya.png',
-  },
-  {
-    id: 10,
-    category: 'liq',
-    title: 'На что я трачу свою жизнь...',
-    desc: 'Со вкусом экзистанциалього кризиса',
+    price: 666666, image: 'photos/liq/zlaya.png' },
+  { id: 10, category: 'liq', title: 'На что я трачу свою жизнь...', desc: 'Со вкусом экзистанциалього кризиса',
     fullDesc: 'Я заебался давать имена переменным. ХАХАХАА, цена 67',
-    price: 67,
-    image: 'photos/liq/och_zlaya.png',
-  }
+    price: 67, image: 'photos/liq/och_zlaya.png' }
 ];
 
 const PRODUCTS_BY_ID = new Map(PRODUCTS.map((p) => [p.id, p]));
@@ -774,7 +709,7 @@ timeGrid.addEventListener('click', (e) => {
 /* -------- Кнопка «Из Telegram» -------- */
 fromTelegramBtn.addEventListener('click', () => {
   if (typeof tg?.requestContact !== 'function') {
-    tg?.showAlert?.('Ваш Telegram не поддерживает эту функцию. Введите номер вручную.');
+    tg?.showAlert?.('Обновите Telegram до последней версии или введите номер вручную.');
     return;
   }
   tg.requestContact((shared) => {
@@ -784,11 +719,20 @@ fromTelegramBtn.addEventListener('click', () => {
   });
 });
 
-// Событие приходит, когда пользователь поделился контактом
+// Событие приходит после того, как пользователь поделился контактом
 tg?.onEvent?.('contactRequested', (event) => {
-  if (event?.status !== 'sent') return;
-  const phone = tg?.initDataUnsafe?.user?.phone_number;
+  // payload может отличаться между версиями SDK — читаем из всех мест
+  const status = event?.status || event?.data?.status;
+  if (status && status !== 'sent') return;
+
+  const phone =
+    event?.contact?.phone_number ||
+    event?.data?.contact?.phone_number ||
+    event?.data?.responseUnsafe?.contact?.phone_number ||
+    tg?.initDataUnsafe?.user?.phone_number;
+
   if (!phone) return;
+
   const formatted = formatPhone(phone);
   phoneInput.value = formatted;
   checkoutState.phone = formatted;
@@ -802,7 +746,8 @@ tg?.onEvent?.('contactRequested', (event) => {
 metroInput.addEventListener('input', (e) => {
   checkoutState.metro = e.target.value;
   const v = e.target.value.trim();
-  if (SPB_METRO_SET.has(v)) {
+  // Снимаем ошибку и при валидном, и при пустом значении
+  if (!v || SPB_METRO_SET.has(v)) {
     metroInput.classList.remove('invalid');
     metroError.classList.add('hidden');
   }
@@ -828,7 +773,7 @@ phoneInput.addEventListener('input', (e) => {
   e.target.value = formatted;
   checkoutState.phone = formatted;
 
-  if (isPhoneValid(formatted)) {
+  if (!formatted || isPhoneValid(formatted)) {
     phoneInput.classList.remove('invalid');
     phoneError.classList.add('hidden');
   }
