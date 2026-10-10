@@ -80,96 +80,16 @@ const CATEGORIES = [
 ];
 
 const PRODUCTS = [
-  {
-    id: 1,
-    category: 'energy',
-    title: 'Блю монстер',
-    desc: 'тропик вайб для бедных',
-    fullDesc: 'Кстати тропический вкус почти у всех энергетиков есть. Буквально почти у всех',
-    price: 99,
-    image: 'photos/energy/Blue-Monster.png',
-  },
-  {
-    id: 2,
-    category: 'energy',
-    title: 'Черная пародия на редбулл',
-    desc: 'дороже редбулла',
-    fullDesc: 'У меня он дороже редбулла, говно(((',
-    price: 1000,
-    image: 'photos/energy/Classic-Monster.png',
-  },
-  {
-    id: 3,
-    category: 'energy',
-    title: 'Розовый, но не для пидорасов',
-    desc: 'Для пидорасов — белый',
-    fullDesc: 'типа дахуя женственный цвет, хаха смешно типа',
-    price: 333,
-    image: 'photos/energy/Pink-Monster.png',
-  },
-  {
-    id: 4,
-    category: 'energy',
-    title: 'О да папочка, бей меня сильнее',
-    desc: 'ДИСКЛЕЙМЕР: ТОЛЬКО ДЛЯ ФЕМБОЕВ',
-    fullDesc: 'Если вы хотите чтобы вас изнасиловали в подворотне',
-    price: 6767,
-    image: 'photos/energy/White-Monster.png',
-  },
-  {
-    id: 5,
-    category: 'liq',
-    title: 'Iceberg',
-    desc: 'Едимнственная нормальная',
-    fullDesc: 'О боже, она такая нормальноотфотканная, необычная. Да ценник из-за этого выше',
-    price: 9999,
-    image: 'photos/liq/Iceberg.png',
-  },
-  {
-    id: 6,
-    category: 'liq',
-    title: 'Красные',
-    desc: 'Не, ну тут 2 красные',
-    fullDesc: 'Реально, прикинь, 2 красные. Я сам ахуел',
-    price: 666,
-    image: 'photos/liq/krasniy.png',
-  },
-  {
-    id: 7,
-    category: 'liq',
-    title: 'чё злые(',
-    desc: 'Я хз, ии злая манашка',
-    fullDesc: 'Я их баюсь((',
-    price: 1488,
-    image: 'photos/liq/5_zlih.png',
-  },
-  {
-    id: 8,
-    category: 'liq',
-    title: 'Зелёные',
-    desc: 'Тут реально зелёные',
-    fullDesc: 'Ты не понял, тут РЕАЛЬНО зелёные',
-    price: 777,
-    image: 'photos/liq/zeleny.png',
-  },
-  {
-    id: 9,
-    category: 'liq',
-    title: 'ЗЛАЯ монашка',
-    desc: 'РЕАЛЬНО ЗЛАЯ МОНАШКА',
-    fullDesc: 'ТИПА ТЫ НЕ ПОНЯЛ, ТУТ РЕАЛЬНО ЗЛАЯ МОНАШКА',
-    price: 666666,
-    image: 'photos/liq/zlaya.png',
-  },
-  {
-    id: 10,
-    category: 'liq',
-    title: 'На что я трачу свою жизнь...',
-    desc: 'Со вкусом экзистанциалього кризиса',
-    fullDesc: 'Я заебался давать имена переменным. ХАХАХАА, цена 67',
-    price: 67,
-    image: 'photos/liq/och_zlaya.png',
-  }
+  { id: 1, category: 'energy', title: 'Блю монстер', desc: 'тропик вайб для бедных', fullDesc: 'Кстати тропический вкус почти у всех энергетиков есть. Буквально почти у всех', price: 99, image: 'photos/energy/Blue-Monster.png' },
+  { id: 2, category: 'energy', title: 'Черная пародия на редбулл', desc: 'дороже редбулла', fullDesc: 'У меня он дороже редбулла, говно(((', price: 1000, image: 'photos/energy/Classic-Monster.png' },
+  { id: 3, category: 'energy', title: 'Розовый, но не для пидорасов', desc: 'Для пидорасов — белый', fullDesc: 'типа дахуя женственный цвет, хаха смешно типа', price: 333, image: 'photos/energy/Pink-Monster.png' },
+  { id: 4, category: 'energy', title: 'О да папочка, бей меня сильнее', desc: 'ДИСКЛЕЙМЕР: ТОЛЬКО ДЛЯ ФЕМБОЕВ', fullDesc: 'Если вы хотите чтобы вас изнасиловали в подворотне', price: 6767, image: 'photos/energy/White-Monster.png' },
+  { id: 5, category: 'liq', title: 'Iceberg', desc: 'Едимнственная нормальная', fullDesc: 'О боже, она такая нормальноотфотканная, необычная. Да ценник из-за этого выше', price: 9999, image: 'photos/liq/Iceberg.png' },
+  { id: 6, category: 'liq', title: 'Красные', desc: 'Не, ну тут 2 красные', fullDesc: 'Реально, прикинь, 2 красные. Я сам ахуел', price: 666, image: 'photos/liq/krasniy.png' },
+  { id: 7, category: 'liq', title: 'чё злые(', desc: 'Я хз, ии злая манашка', fullDesc: 'Я их баюсь((', price: 1488, image: 'photos/liq/5_zlih.png' },
+  { id: 8, category: 'liq', title: 'Зелёные', desc: 'Тут реально зелёные', fullDesc: 'Ты не понял, тут РЕАЛЬНО зелёные', price: 777, image: 'photos/liq/zeleny.png' },
+  { id: 9, category: 'liq', title: 'ЗЛАЯ монашка', desc: 'РЕАЛЬНО ЗЛАЯ МОНАШКА', fullDesc: 'ТИПА ТЫ НЕ ПОНЯЛ, ТУТ РЕАЛЬНО ЗЛАЯ МОНАШКА', price: 666666, image: 'photos/liq/zlaya.png' },
+  { id: 10, category: 'liq', title: 'На что я трачу свою жизнь...', desc: 'Со вкусом экзистанциалього кризиса', fullDesc: 'Я заебался давать имена переменным. ХАХАХАА, цена 67', price: 67, image: 'photos/liq/och_zlaya.png' }
 ];
 
 const PRODUCTS_BY_ID = new Map(PRODUCTS.map((p) => [p.id, p]));
@@ -184,11 +104,7 @@ const getProduct = (id) => PRODUCTS_BY_ID.get(Number(id));
 /* ============================================================
    Данные для оформления заказа
 ============================================================ */
-const PICKUP_STATIONS = [
-  'Комендантский проспект',
-  'Удельная',
-  'Пионерская'
-];
+const PICKUP_STATIONS = ['Комендантский проспект', 'Удельная', 'Пионерская'];
 const PICKUP_STATIONS_SET = new Set(PICKUP_STATIONS);
 
 const SPB_METRO_STATIONS = [
@@ -330,7 +246,10 @@ const successCloseBtn = $('#successCloseBtn');
 const pickupBlock = $('#pickupBlock');
 const deliveryBlock = $('#deliveryBlock');
 const pickupStationsEl = $('#pickupStations');
-const deliveryPills = checkoutView.querySelectorAll('[data-delivery]');
+/* Безопаснее: null-safe выборка через document (раньше могло упасть при null checkoutView) */
+const deliveryPills = checkoutView
+  ? checkoutView.querySelectorAll('[data-delivery]')
+  : document.querySelectorAll('[data-delivery]');
 
 /* ============================================================
    Состояние приложения
@@ -383,19 +302,11 @@ function generateDates() {
   return dates;
 }
 
-/**
- * Генерация слотов времени в зависимости от дня недели.
- * 0 — воскресенье, 5 — пятница.
- *  - Обычные дни:      16:00 – 21:00
- *  - Пятница (5):      16:00 – 18:00
- *  - Воскресенье (0):  16:00 – 20:00
- */
 function generateTimes(dayOfWeek) {
   const times = [];
-
   let endHour = 21;
-  if (dayOfWeek === 5) endHour = 18;       // Пятница
-  else if (dayOfWeek === 0) endHour = 20;  // Воскресенье
+  if (dayOfWeek === 5) endHour = 18;
+  else if (dayOfWeek === 0) endHour = 20;
 
   for (let h = 16; h < endHour; h++) {
     for (let m = 0; m < 60; m += 30) {
@@ -403,12 +314,9 @@ function generateTimes(dayOfWeek) {
       const minStr = String(m).padStart(2, '0');
       const nextHour = m === 30 ? h + 1 : h;
       const nextMin = m === 30 ? '00' : '30';
-      times.push(
-        `${hourStr}:${minStr} – ${String(nextHour).padStart(2, '0')}:${nextMin}`
-      );
+      times.push(`${hourStr}:${minStr} – ${String(nextHour).padStart(2, '0')}:${nextMin}`);
     }
   }
-
   return times;
 }
 
@@ -790,9 +698,13 @@ pickupStationsEl.addEventListener('click', (e) => {
 dateScroll.addEventListener('click', (e) => {
   const pill = e.target.closest('.date-pill');
   if (!pill) return;
+
+  const alreadyActive = pill.classList.contains('active');
   dateScroll.querySelectorAll('.date-pill').forEach((p) => p.classList.toggle('active', p === pill));
   checkoutState.date = pill.dataset.date;
-  renderTimeGrid(Number(pill.dataset.day));
+
+  // Если пользователь ткнул в уже выбранную дату — не сбрасываем время
+  if (!alreadyActive) renderTimeGrid(Number(pill.dataset.day));
   hapticSelection();
 });
 
@@ -817,7 +729,6 @@ fromTelegramBtn.addEventListener('click', () => {
   });
 });
 
-// Событие приходит после того, как пользователь поделился контактом
 tg?.onEvent?.('contactRequested', (event) => {
   const status = event?.status || event?.data?.status;
   if (status && status !== 'sent') return;
@@ -911,15 +822,31 @@ async function sendOrderToBot(order) {
     console.warn('[order] ORDER_PROXY_URL не настроен — заказ сохранён только локально.');
     return { ok: false, reason: 'not_configured' };
   }
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 15000);
+
   try {
     const res = await fetch(ORDER_PROXY_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(order),
+      signal: controller.signal,
     });
-    if (!res.ok) throw new Error('HTTP ' + res.status);
+    clearTimeout(timeoutId);
+
+    if (!res.ok) {
+      // Пытаемся получить тело для понятной причины (invalid_init_data и т.п.)
+      let reason = 'http_' + res.status;
+      try {
+        const data = await res.json();
+        if (data?.error) reason = data.error;
+      } catch {}
+      return { ok: false, reason };
+    }
     return await res.json();
   } catch (err) {
+    clearTimeout(timeoutId);
     console.error('[order] Ошибка отправки:', err);
     return { ok: false, reason: 'network' };
   }
@@ -1005,8 +932,14 @@ confirmOrderBtn.addEventListener('click', async () => {
 
   const result = await sendOrderToBot(order);
 
-  if (!result?.ok && result?.reason === 'network') {
-    tg?.showAlert?.('Не удалось отправить заказ. Мы свяжемся с вами вручную.');
+  // Различаем сетевую ошибку и отказ от воркера (invalid_init_data и пр.)
+  if (result?.ok === false) {
+    if (result.reason === 'network') {
+      tg?.showAlert?.('Не удалось отправить заказ. Мы свяжемся с вами вручную.');
+    } else if (result.reason === 'invalid_init_data') {
+      tg?.showAlert?.('Сессия Telegram устарела. Переоткройте магазин.');
+    }
+    // остальные причины тихо игнорируем — заказ сохранён локально
   }
 
   cart = {};
