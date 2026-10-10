@@ -22,6 +22,9 @@ if (tg?.initDataUnsafe?.user) {
 const ORDER_PROXY_URL = 'https://shopped-worker.tecnoakk10.workers.dev/order';
 const ORDER_PROXY_CONFIGURED = !ORDER_PROXY_URL.includes('YOUR-WORKER');
 
+/* Стоимость доставки, ₽ */
+const DELIVERY_PRICE = 150;
+
 /* ============================================================
    Хелперы
 ============================================================ */
@@ -77,35 +80,96 @@ const CATEGORIES = [
 ];
 
 const PRODUCTS = [
-  { id: 1, category: 'energy', title: 'Блю монстер', desc: 'тропик вайб для бедных',
+  {
+    id: 1,
+    category: 'energy',
+    title: 'Блю монстер',
+    desc: 'тропик вайб для бедных',
     fullDesc: 'Кстати тропический вкус почти у всех энергетиков есть. Буквально почти у всех',
-    price: 99, image: 'photos/energy/Blue-Monster.png' },
-  { id: 2, category: 'energy', title: 'Черная пародия на редбулл', desc: 'дороже редбулла',
-    fullDesc: 'У меня он дороже редбулла, говно((((',
-    price: 1000, image: 'photos/energy/Classic-Monster.png' },
-  { id: 3, category: 'energy', title: 'Розовый, но не для пидорасов', desc: 'Для пидорасов — белый',
+    price: 99,
+    image: 'photos/energy/Blue-Monster.png',
+  },
+  {
+    id: 2,
+    category: 'energy',
+    title: 'Черная пародия на редбулл',
+    desc: 'дороже редбулла',
+    fullDesc: 'У меня он дороже редбулла, говно(((',
+    price: 1000,
+    image: 'photos/energy/Classic-Monster.png',
+  },
+  {
+    id: 3,
+    category: 'energy',
+    title: 'Розовый, но не для пидорасов',
+    desc: 'Для пидорасов — белый',
     fullDesc: 'типа дахуя женственный цвет, хаха смешно типа',
-    price: 333, image: 'photos/energy/Pink-Monster.png' },
-  { id: 4, category: 'energy', title: 'О да папочка, бей меня сильнее', desc: 'ДИСКЛЕЙМЕР: ТОЛЬКО ДЛЯ ФЕМБОЕВ',
+    price: 333,
+    image: 'photos/energy/Pink-Monster.png',
+  },
+  {
+    id: 4,
+    category: 'energy',
+    title: 'О да папочка, бей меня сильнее',
+    desc: 'ДИСКЛЕЙМЕР: ТОЛЬКО ДЛЯ ФЕМБОЕВ',
     fullDesc: 'Если вы хотите чтобы вас изнасиловали в подворотне',
-    price: 6767, image: 'photos/energy/White-Monster.png' },
-  { id: 5, category: 'liq', title: 'Iceberg', desc: 'Единственная нормальная',
+    price: 6767,
+    image: 'photos/energy/White-Monster.png',
+  },
+  {
+    id: 5,
+    category: 'liq',
+    title: 'Iceberg',
+    desc: 'Едимнственная нормальная',
     fullDesc: 'О боже, она такая нормальноотфотканная, необычная. Да ценник из-за этого выше',
-    price: 9999, image: 'photos/liq/Iceberg.png' },
-  { id: 6, category: 'liq', title: 'Красные', desc: 'Не, ну тут 2 красные',
+    price: 9999,
+    image: 'photos/liq/Iceberg.png',
+  },
+  {
+    id: 6,
+    category: 'liq',
+    title: 'Красные',
+    desc: 'Не, ну тут 2 красные',
     fullDesc: 'Реально, прикинь, 2 красные. Я сам ахуел',
-    price: 666, image: 'photos/liq/krasniy.png' },
-  { id: 7, category: 'liq', title: 'чё злые(', desc: 'Я хз, ии злая манашка',
-    fullDesc: 'Я их баюсь((', price: 1488, image: 'photos/liq/5_zlih.png' },
-  { id: 8, category: 'liq', title: 'Зелёные', desc: 'Тут реально зелёные',
+    price: 666,
+    image: 'photos/liq/krasniy.png',
+  },
+  {
+    id: 7,
+    category: 'liq',
+    title: 'чё злые(',
+    desc: 'Я хз, ии злая манашка',
+    fullDesc: 'Я их баюсь((',
+    price: 1488,
+    image: 'photos/liq/5_zlih.png',
+  },
+  {
+    id: 8,
+    category: 'liq',
+    title: 'Зелёные',
+    desc: 'Тут реально зелёные',
     fullDesc: 'Ты не понял, тут РЕАЛЬНО зелёные',
-    price: 777, image: 'photos/liq/zeleny.png' },
-  { id: 9, category: 'liq', title: 'ЗЛАЯ монашка', desc: 'РЕАЛЬНО ЗЛАЯ МОНАШКА',
+    price: 777,
+    image: 'photos/liq/zeleny.png',
+  },
+  {
+    id: 9,
+    category: 'liq',
+    title: 'ЗЛАЯ монашка',
+    desc: 'РЕАЛЬНО ЗЛАЯ МОНАШКА',
     fullDesc: 'ТИПА ТЫ НЕ ПОНЯЛ, ТУТ РЕАЛЬНО ЗЛАЯ МОНАШКА',
-    price: 666666, image: 'photos/liq/zlaya.png' },
-  { id: 10, category: 'liq', title: 'На что я трачу свою жизнь...', desc: 'Со вкусом экзистанциалього кризиса',
+    price: 666666,
+    image: 'photos/liq/zlaya.png',
+  },
+  {
+    id: 10,
+    category: 'liq',
+    title: 'На что я трачу свою жизнь...',
+    desc: 'Со вкусом экзистанциалього кризиса',
     fullDesc: 'Я заебался давать имена переменным. ХАХАХАА, цена 67',
-    price: 67, image: 'photos/liq/och_zlaya.png' }
+    price: 67,
+    image: 'photos/liq/och_zlaya.png',
+  }
 ];
 
 const PRODUCTS_BY_ID = new Map(PRODUCTS.map((p) => [p.id, p]));
@@ -255,6 +319,7 @@ const commentInput = $('#commentInput');
 const promoInput = $('#promoInput');
 const applyPromoBtn = $('#applyPromoBtn');
 const summaryItems = $('#summaryItems');
+const summaryDelivery = $('#summaryDelivery');
 const summaryTotal = $('#summaryTotal');
 const confirmOrderBtn = $('#confirmOrderBtn');
 const cancelOrderBtn = $('#cancelOrderBtn');
@@ -313,24 +378,45 @@ function generateDates() {
     const monthNum = String(d.getMonth() + 1).padStart(2, '0');
     const dateStr = `${dayNum}.${monthNum}`;
     const dayName = i === 0 ? 'сегодня' : (i === 1 ? 'завтра' : days[d.getDay()]);
-    dates.push({ date: dateStr, dayName });
+    dates.push({ date: dateStr, dayName, day: d.getDay() });
   }
   return dates;
 }
 
-function generateTimes() {
+/**
+ * Генерация слотов времени в зависимости от дня недели.
+ * 0 — воскресенье, 5 — пятница.
+ *  - Обычные дни:      16:00 – 21:00
+ *  - Пятница (5):      16:00 – 18:00
+ *  - Воскресенье (0):  16:00 – 20:00
+ */
+function generateTimes(dayOfWeek) {
   const times = [];
-  for (let h = 18; h <= 23; h++) {
+
+  let endHour = 21;
+  if (dayOfWeek === 5) endHour = 18;       // Пятница
+  else if (dayOfWeek === 0) endHour = 20;  // Воскресенье
+
+  for (let h = 16; h < endHour; h++) {
     for (let m = 0; m < 60; m += 30) {
       const hourStr = String(h).padStart(2, '0');
       const minStr = String(m).padStart(2, '0');
-      const isHalf = m === 30;
-      const nextHour = isHalf ? (h === 23 ? '00' : String(h + 1).padStart(2, '0')) : hourStr;
-      const nextMin = isHalf ? '00' : '30';
-      times.push(`${hourStr}:${minStr} – ${nextHour}:${nextMin}`);
+      const nextHour = m === 30 ? h + 1 : h;
+      const nextMin = m === 30 ? '00' : '30';
+      times.push(
+        `${hourStr}:${minStr} – ${String(nextHour).padStart(2, '0')}:${nextMin}`
+      );
     }
   }
+
   return times;
+}
+
+function renderTimeGrid(dayOfWeek) {
+  timeGrid.innerHTML = generateTimes(dayOfWeek).map((t) => `
+    <button class="time-btn" data-time="${t}" type="button">${t}</button>
+  `).join('');
+  checkoutState.time = '';
 }
 
 /* ============================================================
@@ -636,25 +722,35 @@ function initCheckoutForm() {
 
   const dates = generateDates();
   dateScroll.innerHTML = dates.map((d, i) => `
-    <button class="date-pill ${i === 0 ? 'active' : ''}" data-date="${d.date}" type="button">
+    <button class="date-pill ${i === 0 ? 'active' : ''}" data-date="${d.date}" data-day="${d.day}" type="button">
       <span class="day-num">${d.date}</span>
       <span class="day-name">${d.dayName}</span>
     </button>
   `).join('');
   checkoutState.date = dates[0].date;
 
-  timeGrid.innerHTML = generateTimes().map((t) => `
-    <button class="time-btn" data-time="${t}" type="button">${t}</button>
-  `).join('');
-  checkoutState.time = '';
+  renderTimeGrid(dates[0].day);
 
   updateCheckoutSummary();
 }
 
 function updateCheckoutSummary() {
-  const text = fmtPrice(getTotalPrice()) + ' ₽';
-  summaryItems.textContent = text;
-  summaryTotal.textContent = text;
+  const itemsTotal = getTotalPrice();
+  const deliveryCost = checkoutState.deliveryType === 'delivery' ? DELIVERY_PRICE : 0;
+  const total = itemsTotal + deliveryCost;
+
+  summaryItems.textContent = fmtPrice(itemsTotal) + ' ₽';
+  summaryTotal.textContent = fmtPrice(total) + ' ₽';
+
+  if (summaryDelivery) {
+    if (checkoutState.deliveryType === 'delivery') {
+      summaryDelivery.textContent = fmtPrice(DELIVERY_PRICE) + ' ₽';
+      summaryDelivery.classList.remove('free-text');
+    } else {
+      summaryDelivery.textContent = 'Бесплатно';
+      summaryDelivery.classList.add('free-text');
+    }
+  }
 }
 
 function showCheckout() {
@@ -677,6 +773,7 @@ deliveryPills.forEach((btn) => {
     deliveryPills.forEach((b) => b.classList.toggle('active', b === btn));
     checkoutState.deliveryType = btn.dataset.delivery;
     updateDeliveryBlocks();
+    updateCheckoutSummary();
     hapticSelection();
   });
 });
@@ -695,6 +792,7 @@ dateScroll.addEventListener('click', (e) => {
   if (!pill) return;
   dateScroll.querySelectorAll('.date-pill').forEach((p) => p.classList.toggle('active', p === pill));
   checkoutState.date = pill.dataset.date;
+  renderTimeGrid(Number(pill.dataset.day));
   hapticSelection();
 });
 
@@ -721,7 +819,6 @@ fromTelegramBtn.addEventListener('click', () => {
 
 // Событие приходит после того, как пользователь поделился контактом
 tg?.onEvent?.('contactRequested', (event) => {
-  // payload может отличаться между версиями SDK — читаем из всех мест
   const status = event?.status || event?.data?.status;
   if (status && status !== 'sent') return;
 
@@ -746,7 +843,6 @@ tg?.onEvent?.('contactRequested', (event) => {
 metroInput.addEventListener('input', (e) => {
   checkoutState.metro = e.target.value;
   const v = e.target.value.trim();
-  // Снимаем ошибку и при валидном, и при пустом значении
   if (!v || SPB_METRO_SET.has(v)) {
     metroInput.classList.remove('invalid');
     metroError.classList.add('hidden');
@@ -865,7 +961,9 @@ confirmOrderBtn.addEventListener('click', async () => {
 
   const items = getCartEntries();
   const orderId = generateOrderNumber();
-  const orderTotal = getTotalPrice();
+  const itemsTotal = getTotalPrice();
+  const deliveryCost = checkoutState.deliveryType === 'delivery' ? DELIVERY_PRICE : 0;
+  const orderTotal = itemsTotal + deliveryCost;
   const tgUser = tg?.initDataUnsafe?.user || null;
 
   const order = {
@@ -878,6 +976,7 @@ confirmOrderBtn.addEventListener('click', async () => {
       sum: i.price * i.qty
     })),
     total: orderTotal,
+    deliveryCost,
     deliveryType: checkoutState.deliveryType,
     pickupStation: checkoutState.deliveryType === 'pickup' ? checkoutState.pickupStation : '',
     metro: checkoutState.deliveryType === 'delivery' ? metroInput.value.trim() : '',
@@ -918,6 +1017,10 @@ confirmOrderBtn.addEventListener('click', async () => {
     ? `Самовывоз: ${escapeHtml(order.pickupStation)}`
     : `Метро: ${escapeHtml(order.metro)}`;
 
+  const deliveryLine = order.deliveryType === 'delivery'
+    ? `<div>Доставка: <span>${fmtPrice(deliveryCost)} ₽</span></div>`
+    : `<div>Доставка: <span>Бесплатно</span></div>`;
+
   const usernameLine = order.user?.username
     ? `<div>Username: <span>@${escapeHtml(order.user.username)}</span></div>`
     : '';
@@ -925,6 +1028,7 @@ confirmOrderBtn.addEventListener('click', async () => {
   orderNumberDisplay.textContent = order.id;
   successDetails.innerHTML = `
     <div>${pickupOrMetro}</div>
+    ${deliveryLine}
     <div>Дата и время: <span>${escapeHtml(order.date)}, ${escapeHtml(order.time)}</span></div>
     <div>Телефон: <span>${escapeHtml(order.phone)}</span></div>
     ${usernameLine}
