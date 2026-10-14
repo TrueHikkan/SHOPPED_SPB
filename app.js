@@ -79,7 +79,7 @@ const CATEGORIES = [
 ];
 
 const PRODUCTS = [
-  /* ---------- ENERGY — все по 210 ₽ ---------- */
+  /* ---------- ENERGY ---------- */
   {
     id: 1,
     category: 'energy',
@@ -117,7 +117,7 @@ const PRODUCTS = [
     image: 'photos/energy/White-Monster.png',
   },
 
-  /* ---------- LIQ — все по 450 ₽ + варианты ---------- */
+  /* ---------- LIQ  ---------- */
   {
     id: 5,
     category: 'liq',
@@ -193,7 +193,7 @@ const PRODUCTS = [
     category: 'liq',
     title: 'На что я трачу свою жизнь...',
     desc: 'Со вкусом экзистанциалього кризиса',
-    fullDesc: 'Я заебался давать имена переменным. ХАХАХАА',
+    fullDesc: 'Я заебался давать имена переменным x10',
     price: 450,
     image: 'photos/liq/och_zlaya.png',
     variants: [
