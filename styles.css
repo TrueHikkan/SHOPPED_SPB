@@ -14,6 +14,7 @@
   --accent-bg: rgba(10, 132, 255, 0.12);
   --accent-border: rgba(10, 132, 255, 0.55);
   --error: #ff3b30;
+  --success: #34c759;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -225,6 +226,57 @@ body.no-tabbar { padding-bottom: 0; }
 }
 
 #detailView { padding-bottom: 100px; }
+
+/* ===== Варианты liq (виды товара) ===== */
+
+.detail-variants {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.detail-variants-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--hint);
+  margin-bottom: 2px;
+}
+
+.variant-btn {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid rgba(128,128,128,.2);
+  border-radius: 12px;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  transition: background .15s, border-color .15s, color .15s, transform .1s;
+  text-align: left;
+}
+
+.variant-btn:active {
+  background: var(--accent-bg);
+  border-color: var(--accent-border);
+  color: var(--accent);
+  transform: scale(0.99);
+}
+
+.variant-btn .variant-title { font-weight: 700; }
+
+.variant-btn .variant-price {
+  font-weight: 800;
+  color: var(--hint);
+  white-space: nowrap;
+  margin-left: 8px;
+}
+
+.variant-btn:active .variant-price { color: var(--accent); }
 
 /* ===== Корзина ===== */
 
@@ -507,7 +559,7 @@ body.no-tabbar { padding-bottom: 0; }
   font-weight: 600;
 }
 
-.free-text { color: #34c759; }
+.free-text { color: var(--success); }
 
 .scroll-x {
   display: flex;
