@@ -210,7 +210,7 @@ const PRODUCTS = [
     desc: 'Description HARDCORE',
     fullDesc: 'Full description HARDCORE',
     price: 450,
-    image: 'photos/liq/iceberg.png',
+    image: 'photos/liq/hardcore.png',
     variants: [
       { id: 'crisis',  title: 'type1' },
       { id: 'depress', title: 'type2' },
