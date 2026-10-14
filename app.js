@@ -125,7 +125,7 @@ const PRODUCTS = [
     desc: 'Description Rick and morty DOOMSDAY',
     fullDesc: 'Full description Rick and morty DOOMSDAY',
     price: 450,
-    image: 'photos/liq/rickandmorty.jpg',
+    image: 'photos/liq/rickandmorty.png',
     variants: [
       { id: 'mint',       title: 'Мята' },
       { id: 'ice',        title: 'Лёд' },
@@ -139,7 +139,7 @@ const PRODUCTS = [
     desc: 'Description KOMA',
     fullDesc: 'Full description KOMA',
     price: 450,
-    image: 'photos/liq/koma.jpg',
+    image: 'photos/liq/koma.png',
     variants: [
       { id: 'cherry',     title: 'Вишня' },
       { id: 'strawberry', title: 'Клубника' },
@@ -153,7 +153,7 @@ const PRODUCTS = [
     desc: 'Description SOURLINE',
     fullDesc: 'Full description SOURLINE',
     price: 450,
-    image: 'photos/liq/sourline.jpg',
+    image: 'photos/liq/sourline.png',
     variants: [
       { id: 'anger', title: 'Злость' },
       { id: 'rage',  title: 'Ярость' },
@@ -167,7 +167,7 @@ const PRODUCTS = [
     desc: 'Description Anima love',
     fullDesc: 'Full description Anima love',
     price: 450,
-    image: 'photos/liq/animalove.jpg',
+    image: 'photos/liq/animalove.png',
     variants: [
       { id: 'apple',  title: 'Яблоко' },
       { id: 'lime',   title: 'Лайм' },
@@ -181,7 +181,7 @@ const PRODUCTS = [
     desc: 'Description Anima love zombie',
     fullDesc: 'Full description Anima love zombie',
     price: 450,
-    image: 'photos/liq/animalovezombie.jpg',
+    image: 'photos/liq/animalovezombie.png',
     variants: [
       { id: 'sin',    title: 'Грех' },
       { id: 'repent', title: 'Покаяние' },
@@ -195,7 +195,7 @@ const PRODUCTS = [
     desc: 'Description ICEBERG',
     fullDesc: 'Full description ICEBERG',
     price: 450,
-    image: 'photos/liq/iceberg.jpg',
+    image: 'photos/liq/iceberg.png',
     variants: [
       { id: 'crisis',  title: 'Экзистенциальный кризис' },
       { id: 'depress', title: 'Депрессия' },
@@ -209,7 +209,7 @@ const PRODUCTS = [
     desc: 'Description HARDCORE',
     fullDesc: 'Full description HARDCORE',
     price: 450,
-    image: 'photos/liq/iceberg.jpg',
+    image: 'photos/liq/iceberg.png',
     variants: [
       { id: 'crisis',  title: 'Экзистенциальный кризис' },
       { id: 'depress', title: 'Депрессия' },
