@@ -51,6 +51,7 @@ const fmtPrice = (n) => n.toLocaleString('ru-RU');
 
 function scrollTop() {
   document.documentElement.scrollTop = 0;
+  if (document.body) document.body.scrollTop = 0;
 }
 
 function formatPhone(raw) {
@@ -127,9 +128,9 @@ const PRODUCTS = [
     price: 450,
     image: 'photos/liq/rickandmorty.png',
     variants: [
-      { id: 'mint',       title: 'Мята' },
-      { id: 'ice',        title: 'Лёд' },
-      { id: 'watermelon', title: 'Арбуз' },
+      { id: 'mint',       title: 'type1' },
+      { id: 'ice',        title: 'type2' },
+      { id: 'watermelon', title: 'type3' },
     ],
   },
   {
@@ -141,9 +142,9 @@ const PRODUCTS = [
     price: 450,
     image: 'photos/liq/koma.png',
     variants: [
-      { id: 'cherry',     title: 'Вишня' },
-      { id: 'strawberry', title: 'Клубника' },
-      { id: 'garnet',     title: 'Гранат' },
+      { id: 'cherry',     title: 'type1' },
+      { id: 'strawberry', title: 'type2' },
+      { id: 'garnet',     title: 'type3' },
     ],
   },
   {
@@ -155,9 +156,9 @@ const PRODUCTS = [
     price: 450,
     image: 'photos/liq/sourline.png',
     variants: [
-      { id: 'anger', title: 'Злость' },
-      { id: 'rage',  title: 'Ярость' },
-      { id: 'fury',  title: 'Гнев' },
+      { id: 'anger', title: 'type1' },
+      { id: 'rage',  title: 'type2' },
+      { id: 'fury',  title: 'type3' },
     ],
   },
   {
@@ -169,9 +170,9 @@ const PRODUCTS = [
     price: 450,
     image: 'photos/liq/animalove.png',
     variants: [
-      { id: 'apple',  title: 'Яблоко' },
-      { id: 'lime',   title: 'Лайм' },
-      { id: 'tarhun', title: 'Тархун' },
+      { id: 'apple',  title: 'type1' },
+      { id: 'lime',   title: 'type2' },
+      { id: 'tarhun', title: 'type3' },
     ],
   },
   {
@@ -183,9 +184,9 @@ const PRODUCTS = [
     price: 450,
     image: 'photos/liq/animalovezombie.png',
     variants: [
-      { id: 'sin',    title: 'Грех' },
-      { id: 'repent', title: 'Покаяние' },
-      { id: 'tempt',  title: 'Искушение' },
+      { id: 'sin',    title: 'type1' },
+      { id: 'repent', title: 'type2' },
+      { id: 'tempt',  title: 'type3' },
     ],
   },
   {
@@ -197,12 +198,12 @@ const PRODUCTS = [
     price: 450,
     image: 'photos/liq/iceberg.png',
     variants: [
-      { id: 'crisis',  title: 'Экзистенциальный кризис' },
-      { id: 'depress', title: 'Депрессия' },
-      { id: 'void',    title: 'Пустота' },
+      { id: 'crisis',  title: 'type1' },
+      { id: 'depress', title: 'type2' },
+      { id: 'void',    title: 'type3' },
     ],
   },
-   {
+  {
     id: 11,
     category: 'liq',
     title: 'HARDCORE',
@@ -211,9 +212,9 @@ const PRODUCTS = [
     price: 450,
     image: 'photos/liq/iceberg.png',
     variants: [
-      { id: 'crisis',  title: 'Экзистенциальный кризис' },
-      { id: 'depress', title: 'Депрессия' },
-      { id: 'void',    title: 'Пустота' },
+      { id: 'crisis',  title: 'type1' },
+      { id: 'depress', title: 'type2' },
+      { id: 'void',    title: 'type3' },
     ],
   },
 
@@ -226,7 +227,6 @@ const PRODUCTS = [
     fullDesc: 'full description XROS 6 mini',
     price: 1600,
     image: 'photos/pod/xros6mini.jpg',
-    ],
   },
 ];
 
@@ -240,8 +240,7 @@ const getFullDescription = (p) => p.fullDesc || p.desc || '';
 const getProduct = (id) => PRODUCTS_BY_ID.get(Number(id));
 
 /* ============================================================
-   Составные cartId:   "5"  — обычный товар
-                       "5:mint" — вид liq
+   Составные cartId
 ============================================================ */
 function makeCartId(parentId, variantId) {
   return variantId ? `${parentId}:${variantId}` : String(parentId);
@@ -266,7 +265,6 @@ function parseCartId(cartId) {
   return { product, variant };
 }
 
-/* Кэш разобранных cartId → готовые элементы корзины */
 const cartItemCache = new Map();
 
 function buildCartItem(parsed, cartId) {
@@ -354,11 +352,6 @@ function changeQty(cartId, delta) {
   hapticSelection();
 }
 
-/**
- * Один проход по корзине возвращает всё нужное:
- *   { entries, total, count }
- * Заменяет три отдельных функции и экономит вычисления.
- */
 function getCartStats() {
   const entries = [];
   let total = 0;
@@ -374,6 +367,12 @@ function getCartStats() {
   }
 
   return { entries, total, count };
+}
+
+function getCartCount() {
+  let count = 0;
+  for (const id in cart) count += cart[id];
+  return count;
 }
 
 /* ============================================================
@@ -411,7 +410,7 @@ const detailVariants = (() => {
     el = document.createElement('div');
     el.id = 'detailVariants';
     el.className = 'detail-variants hidden';
-    detailView.querySelector('.detail-body')?.appendChild(el);
+    detailView?.querySelector('.detail-body')?.appendChild(el);
   }
   return el;
 })();
@@ -438,11 +437,17 @@ const cancelOrderBtn = $('#cancelOrderBtn');
 const orderNumberDisplay = $('#orderNumberDisplay');
 const successDetails = $('#successDetails');
 const successCloseBtn = $('#successCloseBtn');
+const deliveryCostLabel = $('#deliveryCostLabel');
 
 const pickupBlock = $('#pickupBlock');
 const deliveryBlock = $('#deliveryBlock');
 const pickupStationsEl = $('#pickupStations');
-const deliveryPills = (checkoutView || document).querySelectorAll('[data-delivery]');
+const deliveryPills = document.querySelectorAll('[data-delivery]');
+
+/* Синхронизация цены доставки в блоке «Доставка по СПб» с константой */
+if (deliveryCostLabel) {
+  deliveryCostLabel.textContent = fmtPrice(DELIVERY_PRICE) + ' ₽';
+}
 
 /* ============================================================
    Состояние приложения
@@ -649,7 +654,6 @@ categoryProductsEl.addEventListener('click', (e) => {
   if (addBtn) {
     const productId = Number(addBtn.dataset.add);
     const product = getProduct(productId);
-    // Для liq с вариантами открываем detail — пользователь должен выбрать вид
     if (product?.variants?.length) {
       openDetail(productId, 'category');
       return;
@@ -807,7 +811,7 @@ cartItemsEl.addEventListener('click', (e) => {
 
 function updateBadge() {
   if (!cartBadge) return;
-  const count = getCartStats().count;
+  const count = getCartCount();
   if (count > 0) {
     cartBadge.textContent = count > 99 ? '99+' : String(count);
     cartBadge.classList.remove('hidden');
@@ -914,6 +918,15 @@ deliveryPills.forEach((btn) => {
     if (checkoutState.deliveryType === btn.dataset.delivery) return;
     deliveryPills.forEach((b) => b.classList.toggle('active', b === btn));
     checkoutState.deliveryType = btn.dataset.delivery;
+
+    // При возврате на самовывоз сбрасываем metro, чтобы не осталось старое значение
+    if (checkoutState.deliveryType === 'pickup') {
+      metroInput.value = '';
+      checkoutState.metro = '';
+      metroInput.classList.remove('invalid');
+      metroError.classList.add('hidden');
+    }
+
     updateDeliveryBlocks();
     updateCheckoutSummary();
     hapticSelection();
