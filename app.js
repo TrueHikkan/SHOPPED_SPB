@@ -226,7 +226,7 @@ const PRODUCTS = [
     desc: 'description XROS 6 mini',
     fullDesc: 'full description XROS 6 mini',
     price: 1600,
-    image: 'photos/pod/xros6mini.jpg',
+    image: 'photos/pod/xros6mini.png',
   },
 ];
 
