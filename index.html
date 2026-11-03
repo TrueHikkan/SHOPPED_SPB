@@ -2,8 +2,9 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>SHOPPED_SPB</title>
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -62,7 +63,13 @@
         <h2 id="detailTitle" class="detail-title"></h2>
         <p id="detailDesc" class="detail-desc"></p>
         <div class="detail-price" id="detailPrice"></div>
+
+        <div id="detailStock" class="detail-stock hidden"></div>
+        <div id="adminDetailControls" class="admin-controls hidden"></div>
+
         <button id="detailAdd" class="btn-primary" type="button">Добавить в корзину</button>
+
+        <div id="detailVariants" class="detail-variants hidden"></div>
       </div>
     </section>
 
@@ -170,7 +177,7 @@
         <h2 class="success-title">Заказ оформлен!</h2>
         <p class="success-order-number">Номер вашего заказа: <strong id="orderNumberDisplay"></strong></p>
         <div class="success-details" id="successDetails"></div>
-        <button id="successCloseBtn" class="btn-primary" type="button" style="margin-top: 20px;">Вернуться в каталог</button>
+        <button id="successCloseBtn" class="btn-primary btn-success" type="button">Вернуться в каталог</button>
       </div>
     </section>
 
