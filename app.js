@@ -9,18 +9,28 @@ if (tg) {
   try { tg.setBackgroundColor?.('bg_color'); } catch {}
 }
 
+// ⚠️ ТОЛЬКО для UI. Реальная защита — ADMIN_IDS в секретах Worker.
+// ID всегда числом. Узнать: @userinfobot
+const ADMIN_LIST = [123456789];
+const ADMIN_SET = new Set(ADMIN_LIST.map(Number));
+const currentUserId = tg?.initDataUnsafe?.user?.id;
+const isAdmin =
+  currentUserId != null && ADMIN_SET.has(Number(currentUserId));
+
 if (tg?.initDataUnsafe?.user) {
   const u = tg.initDataUnsafe.user;
   const name = [u.first_name, u.last_name].filter(Boolean).join(' ');
   const greetEl = document.getElementById('userGreeting');
-  if (greetEl) greetEl.textContent = `Привет, ${name}! 👋`;
+  if (greetEl) greetEl.textContent = `Привет, ${name}! 👋${isAdmin ? ' (Админ)' : ''}`;
 }
 
 /* ============================================================
    Константы
 ============================================================ */
-const ORDER_PROXY_URL = 'https://shopped-worker.tecnoakk10.workers.dev/order';
-const ORDER_PROXY_CONFIGURED = !ORDER_PROXY_URL.includes('YOUR-WORKER');
+const API_BASE = 'https://shopped-worker.tecnoakk10.workers.dev';
+const STOCK_URL = `${API_BASE}/stock`;
+const ADMIN_STOCK_URL = `${API_BASE}/admin/stock`;
+const ORDER_URL = `${API_BASE}/order`;
 const DELIVERY_PRICE = 150;
 const STORAGE_KEY = 'mini-shop-cart';
 const ORDER_TIMEOUT_MS = 15000;
@@ -35,19 +45,16 @@ const hapticNotify = (type = 'success') => tg?.HapticFeedback?.notificationOccur
 const hapticSelection = () => tg?.HapticFeedback?.selectionChanged?.();
 
 const ESCAPE_MAP = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
-function escapeHtml(str) {
-  return String(str ?? '').replace(/[&<>"']/g, (ch) => ESCAPE_MAP[ch]);
-}
+const escapeHtml = (str) => String(str ?? '').replace(/[&<>"']/g, (c) => ESCAPE_MAP[c]);
 
 function plural(n, one, few, many) {
-  const m10 = n % 10;
-  const m100 = n % 100;
+  const m10 = n % 10, m100 = n % 100;
   if (m10 === 1 && m100 !== 11) return one;
   if (m10 >= 2 && m10 <= 4 && (m100 < 10 || m100 >= 20)) return few;
   return many;
 }
 
-const fmtPrice = (n) => n.toLocaleString('ru-RU');
+const fmtPrice = (n) => Number(n || 0).toLocaleString('ru-RU');
 
 function scrollTop() {
   document.documentElement.scrollTop = 0;
@@ -80,154 +87,88 @@ const CATEGORIES = [
 ];
 
 const PRODUCTS = [
-  /* ---------- ENERGY ---------- */
-  {
-    id: 1,
-    category: 'energy',
-    title: 'Blue Monster',
-    desc: 'Description Blue Monster',
-    fullDesc: 'Full description Blue Monster',
-    price: 210,
-    image: 'photos/energy/Blue-Monster.png',
-  },
-  {
-    id: 2,
-    category: 'energy',
-    title: 'Original Monster',
-    desc: 'Description Original Monster',
-    fullDesc: 'Full description Original Monster',
-    price: 210,
-    image: 'photos/energy/Classic-Monster.png',
-  },
-  {
-    id: 3,
-    category: 'energy',
-    title: 'Pink Monster',
-    desc: 'Description Pink Monster',
-    fullDesc: 'Full description Pink Monster',
-    price: 210,
-    image: 'photos/energy/Pink-Monster.png',
-  },
-  {
-    id: 4,
-    category: 'energy',
-    title: 'White Monster',
-    desc: 'Description White Monster',
-    fullDesc: 'Full description White Monster',
-    price: 210,
-    image: 'photos/energy/White-Monster.png',
-  },
+  { id: 1, category: 'energy', title: 'Blue Monster', desc: 'Энергетик',
+    fullDesc: 'Не рекомендуется к употреблению до 18 лет', price: 210,
+    image: 'photos/energy/Blue-Monster.png', stock: 10 },
+  { id: 2, category: 'energy', title: 'Original Monster', desc: 'Энергетик',
+    fullDesc: 'Не рекомендуется к употреблению до 18 лет', price: 210,
+    image: 'photos/energy/Classic-Monster.png', stock: 10 },
+  { id: 3, category: 'energy', title: 'Pink Monster', desc: 'Энергетик',
+    fullDesc: 'Не рекомендуется к употреблению до 18 лет', price: 210,
+    image: 'photos/energy/Pink-Monster.png', stock: 10 },
+  { id: 4, category: 'energy', title: 'White Monster', desc: 'Энергетик',
+    fullDesc: 'Не рекомендуется к употреблению до 18 лет', price: 210,
+    image: 'photos/energy/White-Monster.png', stock: 10 },
 
-  /* ---------- LIQ  ---------- */
-  {
-    id: 5,
-    category: 'liq',
-    title: 'Rick and morty DOOMSDAY',
-    desc: 'Description Rick and morty DOOMSDAY',
-    fullDesc: 'Full description Rick and morty DOOMSDAY',
-    price: 450,
-    image: 'photos/liq/rickandmorty.png',
+  { id: 5, category: 'liq', title: 'MONSTER HEADSHOT 80mg', desc: 'Жидкость для вейпа',
+    fullDesc: 'Употребление табака приводит к риску развития рака', price: 290,
+    image: 'photos/liq/headshot.png', stock: 0,
     variants: [
-      { id: 'mint',       title: 'type1' },
-      { id: 'ice',        title: 'type2' },
-      { id: 'watermelon', title: 'type3' },
-    ],
-  },
-  {
-    id: 6,
-    category: 'liq',
-    title: 'KOMA',
-    desc: 'Description KOMA',
-    fullDesc: 'Full description KOMA',
-    price: 450,
-    image: 'photos/liq/koma.png',
+      { id: 'v1', title: 'Абрикос и персик', stock: 10 },
+      { id: 'v2', title: 'Ананас и маракуйя', stock: 10 },
+      { id: 'v3', title: 'Ананас и розовая гуава', stock: 10 },
+      { id: 'v4', title: 'Апельсин и лайм', stock: 10 },
+      { id: 'v5', title: 'Арбузный спрайт и ментос', stock: 10 },
+      { id: 'v6', title: 'Банан и киви', stock: 10 },
+      { id: 'v7', title: 'Виноградный алоэ и сакура', stock: 10 },
+      { id: 'v8', title: 'Вишневая кола', stock: 10 },
+      { id: 'v9', title: 'Грейпфрут и смородина', stock: 10 },
+      { id: 'v10', title: 'Дыня и мята', stock: 10 },
+      { id: 'v11', title: 'Земляника и персик', stock: 10 },
+      { id: 'v12', title: 'Клубника и драгонфрут', stock: 10 },
+      { id: 'v13', title: 'Клубника и личи', stock: 10 },
+      { id: 'v14', title: 'Клубничный мохито', stock: 10 },
+      { id: 'v15', title: 'Лимон и лайм', stock: 10 },
+      { id: 'v16', title: 'Малина и клубника', stock: 10 },
+      { id: 'v17', title: 'Черника и виноград', stock: 10 },
+      { id: 'v18', title: 'Черничный энергетик', stock: 10 },
+      { id: 'v19', title: 'Ягодный скиттлс', stock: 10 },
+      { id: 'v20', title: 'Черешня и мята', stock: 10 },
+    ] },
+  { id: 6, category: 'liq', title: 'MONSTER HARDCORE 60mg', desc: 'Жидкость для вейпа',
+    fullDesc: 'Употребление табака приводит к риску развития рака', price: 260,
+    image: 'photos/liq/hardcore.png', stock: 0,
     variants: [
-      { id: 'cherry',     title: 'type1' },
-      { id: 'strawberry', title: 'type2' },
-      { id: 'garnet',     title: 'type3' },
-    ],
-  },
-  {
-    id: 7,
-    category: 'liq',
-    title: 'SOURLINE',
-    desc: 'Description SOURLINE',
-    fullDesc: 'Full description SOURLINE',
-    price: 450,
-    image: 'photos/liq/sourline.png',
+      { id: 'h1', title: 'Ананасовый коктейль', stock: 10 },
+      { id: 'h2', title: 'Барбарисовый коктейль', stock: 10 },
+      { id: 'h3', title: 'Гранатовый коктейль', stock: 10 },
+      { id: 'h4', title: 'Грейпфрутовый коктейль', stock: 10 },
+      { id: 'h5', title: 'Манговый коктейль', stock: 10 },
+      { id: 'h6', title: 'Маракуйя коктейль', stock: 10 },
+      { id: 'h7', title: 'Яблочный коктейль', stock: 10 },
+    ] },
+  { id: 7, category: 'liq', title: 'MONSTER ICEBERG 60mg', desc: 'Жидкость для вейпа',
+    fullDesc: 'Употребление табака приводит к риску развития рака', price: 260,
+    image: 'photos/liq/iceberg.png', stock: 0,
     variants: [
-      { id: 'anger', title: 'type1' },
-      { id: 'rage',  title: 'type2' },
-      { id: 'fury',  title: 'type3' },
-    ],
-  },
-  {
-    id: 8,
-    category: 'liq',
-    title: 'Anima love',
-    desc: 'Description Anima love',
-    fullDesc: 'Full description Anima love',
-    price: 450,
-    image: 'photos/liq/animalove.png',
+      { id: 'i1', title: 'Ледяной Персик', stock: 10 },
+      { id: 'i2', title: 'Манго и Маракуйя', stock: 10 },
+      { id: 'i3', title: 'Морозная Пинаколада', stock: 10 },
+      { id: 'i4', title: 'Смородиной Смузи', stock: 10 },
+      { id: 'i5', title: 'Фейхоа и Клубника', stock: 10 },
+      { id: 'i6', title: 'Ананас и Личи', stock: 10 },
+      { id: 'i7', title: 'Вишня и Грейпфрут', stock: 10 },
+      { id: 'i8', title: 'Киви и Лайм', stock: 10 },
+      { id: 'i9', title: 'Ледяной Гранат', stock: 10 },
+    ] },
+  { id: 8, category: 'liq', title: 'MONSTER SOUR 60mg', desc: 'Жидкость для вейпа',
+    fullDesc: 'Употребление табака приводит к риску развития рака', price: 260,
+    image: 'photos/liq/sour.png', stock: 0,
     variants: [
-      { id: 'apple',  title: 'type1' },
-      { id: 'lime',   title: 'type2' },
-      { id: 'tarhun', title: 'type3' },
-    ],
-  },
-  {
-    id: 9,
-    category: 'liq',
-    title: 'Anima love zombie',
-    desc: 'Description Anima love zombie',
-    fullDesc: 'Full description Anima love zombie',
-    price: 450,
-    image: 'photos/liq/animalovezombie.png',
-    variants: [
-      { id: 'sin',    title: 'type1' },
-      { id: 'repent', title: 'type2' },
-      { id: 'tempt',  title: 'type3' },
-    ],
-  },
-  {
-    id: 10,
-    category: 'liq',
-    title: 'ICEBERG',
-    desc: 'Description ICEBERG',
-    fullDesc: 'Full description ICEBERG',
-    price: 450,
-    image: 'photos/liq/iceberg.png',
-    variants: [
-      { id: 'crisis',  title: 'type1' },
-      { id: 'depress', title: 'type2' },
-      { id: 'void',    title: 'type3' },
-    ],
-  },
-  {
-    id: 11,
-    category: 'liq',
-    title: 'HARDCORE',
-    desc: 'Description HARDCORE',
-    fullDesc: 'Full description HARDCORE',
-    price: 450,
-    image: 'photos/liq/hardcore.png',
-    variants: [
-      { id: 'crisis',  title: 'type1' },
-      { id: 'depress', title: 'type2' },
-      { id: 'void',    title: 'type3' },
-    ],
-  },
+      { id: 's1', title: 'Малина и Грейпфрут', stock: 10 },
+      { id: 's2', title: 'Маракуйя и Киви', stock: 10 },
+      { id: 's3', title: 'Цитрусовая шипучка', stock: 10 },
+      { id: 's4', title: 'Клубника и Лимон', stock: 10 },
+      { id: 's5', title: 'Лимонад ситро', stock: 10 },
+      { id: 's6', title: 'Лимонные леденцы', stock: 10 },
+      { id: 's7', title: 'Ананасовая газировка', stock: 10 },
+      { id: 's8', title: 'Барбарисовый швепс', stock: 10 },
+      { id: 's9', title: 'Киви и Лайм', stock: 10 },
+    ] },
 
-  /* ---------- POD  ---------- */
-  {
-    id: 12,
-    category: 'pod',
-    title: 'XRos 6 mini',
-    desc: 'description XROS 6 mini',
-    fullDesc: 'full description XROS 6 mini',
-    price: 1600,
-    image: 'photos/pod/xros6mini.png',
-  },
+  { id: 9, category: 'pod', title: 'XRos 6 mini', desc: 'Под-система',
+    fullDesc: 'Употребление табака приводит к риску развития рака', price: 1600,
+    image: 'photos/pod/xros6mini.png', stock: 10 },
 ];
 
 const PRODUCTS_BY_ID = new Map(PRODUCTS.map((p) => [p.id, p]));
@@ -240,7 +181,44 @@ const getFullDescription = (p) => p.fullDesc || p.desc || '';
 const getProduct = (id) => PRODUCTS_BY_ID.get(Number(id));
 
 /* ============================================================
-   Составные cartId
+   Остатки с сервера
+============================================================ */
+let serverStock = Object.create(null);
+
+async function fetchStock() {
+  try {
+    const res = await fetch(STOCK_URL, { cache: 'no-store' });
+    if (!res.ok) throw new Error('http_' + res.status);
+    const data = await res.json();
+    if (data && typeof data === 'object') {
+      serverStock = data;
+      applyServerStock();
+    }
+  } catch (err) {
+    console.warn('[stock] не удалось загрузить остатки', err);
+  }
+}
+
+function applyServerStock() {
+  for (const p of PRODUCTS) {
+    if (p.variants?.length) {
+      for (const v of p.variants) {
+        const key = `${p.id}:${v.id}`;
+        if (Object.prototype.hasOwnProperty.call(serverStock, key)) {
+          v.stock = Math.max(0, Number(serverStock[key]) || 0);
+        }
+      }
+    } else {
+      const key = String(p.id);
+      if (Object.prototype.hasOwnProperty.call(serverStock, key)) {
+        p.stock = Math.max(0, Number(serverStock[key]) || 0);
+      }
+    }
+  }
+}
+
+/* ============================================================
+   Cart IDs
 ============================================================ */
 function makeCartId(parentId, variantId) {
   return variantId ? `${parentId}:${variantId}` : String(parentId);
@@ -249,20 +227,27 @@ function makeCartId(parentId, variantId) {
 function parseCartId(cartId) {
   const s = String(cartId ?? '');
   if (!s) return null;
-
   const colon = s.indexOf(':');
   if (colon === -1) {
     const product = PRODUCTS_BY_ID.get(Number(s));
     return product ? { product, variant: null } : null;
   }
-
   const product = PRODUCTS_BY_ID.get(Number(s.slice(0, colon)));
   if (!product || !Array.isArray(product.variants)) return null;
-
   const variant = product.variants.find((v) => v.id === s.slice(colon + 1));
-  if (!variant) return null;
+  return variant ? { product, variant } : null;
+}
 
-  return { product, variant };
+function getAvailableStock(parsed) {
+  if (!parsed) return 0;
+  return parsed.variant ? (parsed.variant.stock || 0) : (parsed.product.stock || 0);
+}
+
+function displayName(parsed) {
+  if (!parsed) return '';
+  return parsed.variant
+    ? `${parsed.product.title} — ${parsed.variant.title}`
+    : parsed.product.title;
 }
 
 const cartItemCache = new Map();
@@ -279,9 +264,7 @@ function buildCartItem(parsed, cartId) {
 }
 
 function getCartItem(cartId) {
-  const cached = cartItemCache.get(cartId);
-  if (cached !== undefined) return cached;
-
+  if (cartItemCache.has(cartId)) return cartItemCache.get(cartId);
   const parsed = parseCartId(cartId);
   const item = parsed ? buildCartItem(parsed, cartId) : null;
   cartItemCache.set(cartId, item);
@@ -289,31 +272,31 @@ function getCartItem(cartId) {
 }
 
 /* ============================================================
-   Данные для оформления заказа
+   Данные доставки
 ============================================================ */
 const PICKUP_STATIONS = ['Комендантский проспект', 'Удельная', 'Пионерская'];
 const PICKUP_STATIONS_SET = new Set(PICKUP_STATIONS);
 
 const SPB_METRO_STATIONS = [
-  "Автово", "Адмиралтейская", "Академическая", "Балтийская", "Бухарестская",
-  "Василеостровская", "Владимирская", "Волковская", "Выборгская", "Горьковская",
-  "Гостиный двор", "Гражданский проспект", "Девяткино", "Достоевская", "Елизаровская",
-  "Звенигородская", "Зенит", "Кировский завод", "Комендантский проспект", "Крестовский остров",
-  "Купчино", "Ладожская", "Ленинский проспект", "Лесная", "Лиговский проспект",
-  "Ломоносовская", "Маяковская", "Международная", "Московская", "Московские ворота",
-  "Нарвская", "Невский проспект", "Новочеркасская", "Обводный канал", "Обухово",
-  "Озерки", "Парк Победы", "Парнас", "Петроградская", "Пионерская",
-  "Площадь Александра Невского", "Площадь Восстания", "Площадь Ленина", "Площадь Мужества",
-  "Политехническая", "Приморская", "Пролетарская", "Проспект Большевиков", "Проспект Ветеранов",
-  "Проспект Просвещения", "Пушкинская", "Рыбацкое", "Садовая", "Сенная площадь",
-  "Спасская", "Спортивная", "Старая Деревня", "Технологический институт", "Удельная",
-  "Улица Дыбенко", "Фрунзенская", "Черная речка", "Чернышевская", "Чкаловская",
+  "Автово","Адмиралтейская","Академическая","Балтийская","Бухарестская",
+  "Василеостровская","Владимирская","Волковская","Выборгская","Горьковская",
+  "Гостиный двор","Гражданский проспект","Девяткино","Достоевская","Елизаровская",
+  "Звенигородская","Зенит","Кировский завод","Комендантский проспект","Крестовский остров",
+  "Купчино","Ладожская","Ленинский проспект","Лесная","Лиговский проспект",
+  "Ломоносовская","Маяковская","Международная","Московская","Московские ворота",
+  "Нарвская","Невский проспект","Новочеркасская","Обводный канал","Обухово",
+  "Озерки","Парк Победы","Парнас","Петроградская","Пионерская",
+  "Площадь Александра Невского","Площадь Восстания","Площадь Ленина","Площадь Мужества",
+  "Политехническая","Приморская","Пролетарская","Проспект Большевиков","Проспект Ветеранов",
+  "Проспект Просвещения","Пушкинская","Рыбацкое","Садовая","Сенная площадь",
+  "Спасская","Спортивная","Старая Деревня","Технологический институт","Удельная",
+  "Улица Дыбенко","Фрунзенская","Черная речка","Чернышевская","Чкаловская",
   "Электросила"
 ];
 const SPB_METRO_SET = new Set(SPB_METRO_STATIONS);
 
 /* ============================================================
-   Корзина (localStorage)
+   Корзина
 ============================================================ */
 let cart = loadCart();
 
@@ -324,9 +307,7 @@ function loadCart() {
     const clean = {};
     for (const id in raw) {
       const n = Math.floor(Number(raw[id]));
-      if (Number.isFinite(n) && n > 0 && parseCartId(id)) {
-        clean[id] = n;
-      }
+      if (Number.isFinite(n) && n > 0 && parseCartId(id)) clean[id] = n;
     }
     return clean;
   } catch { return {}; }
@@ -337,16 +318,40 @@ function saveCart() {
 }
 
 function addToCart(cartId) {
-  if (!getCartItem(cartId)) return;
-  cart[cartId] = (cart[cartId] || 0) + 1;
+  const parsed = parseCartId(cartId);
+  if (!parsed) return false;
+
+  const available = getAvailableStock(parsed);
+  const currentInCart = cart[cartId] || 0;
+
+  if (available <= 0) {
+    tg?.showAlert?.('Этого товара нет в наличии.');
+    return false;
+  }
+  if (currentInCart >= available) {
+    tg?.showAlert?.(`В наличии только ${available} шт.`);
+    return false;
+  }
+  cart[cartId] = currentInCart + 1;
   saveCart();
   updateCartUI();
+  return true;
 }
 
 function changeQty(cartId, delta) {
   if (!cart[cartId]) return;
-  cart[cartId] += delta;
-  if (cart[cartId] <= 0) delete cart[cartId];
+  const parsed = parseCartId(cartId);
+  if (!parsed) return;
+
+  const available = getAvailableStock(parsed);
+  const newQty = cart[cartId] + delta;
+
+  if (delta > 0 && newQty > available) {
+    tg?.showAlert?.(`В наличии только ${available} шт.`);
+    return;
+  }
+  if (newQty <= 0) delete cart[cartId];
+  else cart[cartId] = newQty;
   saveCart();
   updateCartUI();
   hapticSelection();
@@ -354,9 +359,7 @@ function changeQty(cartId, delta) {
 
 function getCartStats() {
   const entries = [];
-  let total = 0;
-  let count = 0;
-
+  let total = 0, count = 0;
   for (const id in cart) {
     const item = getCartItem(id);
     if (!item) continue;
@@ -365,7 +368,6 @@ function getCartStats() {
     total += item.price * qty;
     count += qty;
   }
-
   return { entries, total, count };
 }
 
@@ -373,6 +375,26 @@ function getCartCount() {
   let count = 0;
   for (const id in cart) count += cart[id];
   return count;
+}
+
+function validateCartAgainstStock() {
+  const issues = [];
+  for (const cartId in cart) {
+    const parsed = parseCartId(cartId);
+    if (!parsed) {
+      issues.push('Некоторый товар больше недоступен и будет удалён.');
+      delete cart[cartId];
+      continue;
+    }
+    const available = getAvailableStock(parsed);
+    const qty = cart[cartId];
+    if (available <= 0) {
+      issues.push(`«${displayName(parsed)}» закончился.`);
+    } else if (qty > available) {
+      issues.push(`«${displayName(parsed)}»: в корзине ${qty}, в наличии ${available}.`);
+    }
+  }
+  return issues;
 }
 
 /* ============================================================
@@ -402,18 +424,9 @@ const detailTitle = $('#detailTitle');
 const detailDesc = $('#detailDesc');
 const detailPrice = $('#detailPrice');
 const detailAdd = $('#detailAdd');
-
-/* Контейнер для вариантов liq — создаётся программно, стили в styles.css */
-const detailVariants = (() => {
-  let el = document.getElementById('detailVariants');
-  if (!el) {
-    el = document.createElement('div');
-    el.id = 'detailVariants';
-    el.className = 'detail-variants hidden';
-    detailView?.querySelector('.detail-body')?.appendChild(el);
-  }
-  return el;
-})();
+const detailStockEl = $('#detailStock');
+const adminDetailControls = $('#adminDetailControls');
+const detailVariants = $('#detailVariants');
 
 const checkoutView = $('#checkoutView');
 const successView = $('#successView');
@@ -438,19 +451,15 @@ const orderNumberDisplay = $('#orderNumberDisplay');
 const successDetails = $('#successDetails');
 const successCloseBtn = $('#successCloseBtn');
 const deliveryCostLabel = $('#deliveryCostLabel');
-
 const pickupBlock = $('#pickupBlock');
 const deliveryBlock = $('#deliveryBlock');
 const pickupStationsEl = $('#pickupStations');
 const deliveryPills = document.querySelectorAll('[data-delivery]');
 
-/* Синхронизация цены доставки в блоке «Доставка по СПб» с константой */
-if (deliveryCostLabel) {
-  deliveryCostLabel.textContent = fmtPrice(DELIVERY_PRICE) + ' ₽';
-}
+if (deliveryCostLabel) deliveryCostLabel.textContent = fmtPrice(DELIVERY_PRICE) + ' ₽';
 
 /* ============================================================
-   Состояние приложения
+   Состояние
 ============================================================ */
 let activeView = 'catalog';
 let currentCategoryId = null;
@@ -469,7 +478,90 @@ const checkoutState = {
 };
 
 /* ============================================================
-   Кеш HTML-заготовок
+   Админ: обновление склада (async, с backend)
+============================================================ */
+const pendingAdminUpdates = new Set();
+
+async function handleAdminStockUpdate(btn) {
+  if (!isAdmin) return;
+
+  const action = btn.dataset.adminAction;
+  const productId = Number(btn.dataset.id);
+  const variantId = btn.dataset.variant || '';
+  const p = getProduct(productId);
+  if (!p) return;
+
+  const parsed = variantId
+    ? { product: p, variant: p.variants?.find((v) => v.id === variantId) }
+    : { product: p, variant: null };
+  if (variantId && !parsed.variant) return;
+
+  const key = variantId ? `${productId}:${variantId}` : String(productId);
+  if (pendingAdminUpdates.has(key)) return;
+
+  const current = parsed.variant ? (parsed.variant.stock || 0) : (p.stock || 0);
+  const next = Math.max(0, current + (action === 'inc' ? 1 : -1));
+  if (next === current) return;
+
+  pendingAdminUpdates.add(key);
+
+  // Оптимистичное обновление
+  if (parsed.variant) parsed.variant.stock = next;
+  else p.stock = next;
+  rerenderActive();
+
+  try {
+    const res = await fetch(ADMIN_STOCK_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `tma ${tg?.initData || ''}`,
+      },
+      body: JSON.stringify({
+        productId: String(productId),
+        variantId: variantId || undefined,
+        qty: next,
+      }),
+    });
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      // откат
+      if (parsed.variant) parsed.variant.stock = current;
+      else p.stock = current;
+      rerenderActive();
+
+      tg?.showAlert?.(
+        data.error === 'forbidden'
+          ? 'Нет прав. Проверьте ADMIN_IDS в секретах Worker.'
+          : 'Не удалось сохранить остаток. Попробуйте снова.'
+      );
+      return;
+    }
+
+    serverStock[key] = next;
+    hapticImpact('light');
+  } catch (err) {
+    // откат
+    if (parsed.variant) parsed.variant.stock = current;
+    else p.stock = current;
+    rerenderActive();
+    tg?.showAlert?.('Сервер недоступен. Остаток не изменён.');
+  } finally {
+    pendingAdminUpdates.delete(key);
+  }
+}
+
+function rerenderActive() {
+  if (activeView === 'category') renderCategoryProducts(currentCategoryId);
+  else if (activeView === 'detail' && currentProductId != null) {
+    const p = getProduct(currentProductId);
+    if (p) renderDetail(p);
+  } else if (activeView === 'cart') renderCart();
+}
+
+/* ============================================================
+   Даты и время
 ============================================================ */
 let metroDatalistCache = '';
 function getMetroDatalist() {
@@ -481,9 +573,6 @@ function getMetroDatalist() {
   return metroDatalistCache;
 }
 
-/* ============================================================
-   Генераторы дат и времени
-============================================================ */
 const DAY_NAMES = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
 
 function generateDates() {
@@ -495,20 +584,29 @@ function generateDates() {
     const dayNum = String(d.getDate()).padStart(2, '0');
     const monthNum = String(d.getMonth() + 1).padStart(2, '0');
     const dateStr = `${dayNum}.${monthNum}`;
-    const dayName = i === 0 ? 'сегодня' : (i === 1 ? 'завтра' : DAY_NAMES[d.getDay()]);
+    const dayName = i === 0 ? 'сегодня' : i === 1 ? 'завтра' : DAY_NAMES[d.getDay()];
     dates.push({ date: dateStr, dayName, day: d.getDay() });
   }
   return dates;
 }
 
-function generateTimes(dayOfWeek) {
+function generateTimes(dayOfWeek, dateStr) {
   const times = [];
   let endHour = 21;
   if (dayOfWeek === 5) endHour = 18;
   else if (dayOfWeek === 0) endHour = 20;
 
+  const now = new Date();
+  const todayStr =
+    String(now.getDate()).padStart(2, '0') + '.' +
+    String(now.getMonth() + 1).padStart(2, '0');
+  const isToday = dateStr === todayStr;
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  const bufferMinutes = 30;
+
   for (let h = 16; h < endHour; h++) {
     for (let m = 0; m < 60; m += 30) {
+      if (isToday && (h * 60 + m) < currentMinutes + bufferMinutes) continue;
       const hourStr = String(h).padStart(2, '0');
       const minStr = String(m).padStart(2, '0');
       const nextHour = m === 30 ? h + 1 : h;
@@ -519,42 +617,35 @@ function generateTimes(dayOfWeek) {
   return times;
 }
 
-function renderTimeGrid(dayOfWeek) {
-  timeGrid.innerHTML = generateTimes(dayOfWeek).map((t) => `
-    <button class="time-btn" data-time="${t}" type="button">${t}</button>
-  `).join('');
+function renderTimeGrid(dayOfWeek, dateStr) {
+  const times = generateTimes(dayOfWeek, dateStr);
   checkoutState.time = '';
+  if (times.length === 0) {
+    timeGrid.innerHTML = `<div style="grid-column:1/-1;padding:16px;text-align:center;color:var(--hint);font-size:14px;">Нет доступного времени на эту дату</div>`;
+    return;
+  }
+  timeGrid.innerHTML = times.map((t) => `
+    <button class="time-btn" data-time="${escapeHtml(t)}" type="button">${t}</button>
+  `).join('');
 }
 
 /* ============================================================
    Переключение экранов
 ============================================================ */
 const VIEWS = {
-  catalog: catalogView,
-  category: categoryView,
-  cart: cartView,
-  detail: detailView,
-  checkout: checkoutView,
-  success: successView,
+  catalog: catalogView, category: categoryView, cart: cartView,
+  detail: detailView, checkout: checkoutView, success: successView,
 };
 
 function showView(name) {
-  for (const key in VIEWS) {
-    const el = VIEWS[key];
-    if (el) el.classList.toggle('hidden', key !== name);
-  }
+  for (const key in VIEWS) VIEWS[key]?.classList.toggle('hidden', key !== name);
   activeView = name;
 }
-
-function setHeaderVisible(visible) {
-  headerEl.classList.toggle('header--hidden', !visible);
-}
-
+function setHeaderVisible(visible) { headerEl.classList.toggle('header--hidden', !visible); }
 function setTabbarVisible(visible) {
   tabbar.classList.toggle('hidden', !visible);
   document.body.classList.toggle('no-tabbar', !visible);
 }
-
 function setActiveTab(tab) {
   const isCatalog = tab === 'catalog';
   tabCatalog.classList.toggle('active', isCatalog);
@@ -562,31 +653,45 @@ function setActiveTab(tab) {
 }
 
 /* ============================================================
-   Шаблон карточки товара
+   Карточка товара
 ============================================================ */
 function productCardHTML(p) {
   const title = escapeHtml(p.title);
   const desc = escapeHtml(p.desc);
   const image = escapeHtml(p.image);
   const price = fmtPrice(p.price);
+  const catClass = p.category !== 'energy' ? p.category : '';
+
+  const totalStock = p.variants
+    ? p.variants.reduce((s, v) => s + (v.stock || 0), 0)
+    : (p.stock || 0);
+  const stockText = totalStock > 0 ? `В наличии: ${totalStock} шт.` : 'Нет в наличии';
+  const stockClass = totalStock > 0 ? '' : 'out-of-stock';
+
   return `
-    <div class="product-card" data-id="${p.id}">
+    <div class="product-card ${catClass}" data-id="${p.id}">
       <img src="${image}" alt="${title}" loading="lazy"
         onerror="this.style.background='rgba(128,128,128,.15)';this.alt='📷';this.removeAttribute('src');" />
       <div class="product-info">
         <div class="product-title">${title}</div>
         <div class="product-desc">${desc}</div>
+        <div class="stock-badge ${stockClass}">${stockText}</div>
         <div class="product-row">
           <div class="product-price">${price} ₽</div>
           <button class="add-btn" data-add="${p.id}" type="button" aria-label="Добавить в корзину">+</button>
         </div>
+        ${isAdmin && !p.variants ? `
+        <div class="admin-controls" onclick="event.stopPropagation()">
+          <button class="admin-btn" data-admin-action="dec" data-id="${p.id}">−</button>
+          <button class="admin-btn" data-admin-action="inc" data-id="${p.id}">+</button>
+        </div>` : ''}
       </div>
     </div>
   `;
 }
 
 /* ============================================================
-   ГЛАВНОЕ МЕНЮ
+   Каталог
 ============================================================ */
 function renderCategories() {
   categoriesEl.innerHTML = CATEGORIES.map((cat) => {
@@ -623,7 +728,7 @@ categoriesEl.addEventListener('click', (e) => {
 });
 
 /* ============================================================
-   АССОРТИМЕНТ КАТЕГОРИИ
+   Категория
 ============================================================ */
 function renderCategoryProducts(categoryId) {
   const items = PRODUCTS_BY_CATEGORY[categoryId] || [];
@@ -632,7 +737,7 @@ function renderCategoryProducts(categoryId) {
     : items.map(productCardHTML).join('');
 }
 
-function openCategory(id, scrollToTop = true) {
+function openCategory(id, doScroll = true) {
   const cat = CATEGORIES.find((c) => c.id === id);
   if (!cat) return;
   currentCategoryId = id;
@@ -642,14 +747,19 @@ function openCategory(id, scrollToTop = true) {
   setTabbarVisible(true);
   setHeaderVisible(false);
   setActiveTab('catalog');
-  if (scrollToTop) scrollTop();
+  if (doScroll) scrollTop();
   tg?.BackButton?.show?.();
 }
 
-function closeCategory() { showCatalog(); }
-categoryBack.addEventListener('click', closeCategory);
+categoryBack.addEventListener('click', () => showCatalog());
 
-categoryProductsEl.addEventListener('click', (e) => {
+categoryProductsEl.addEventListener('click', async (e) => {
+  const adminBtn = e.target.closest('[data-admin-action]');
+  if (adminBtn) {
+    await handleAdminStockUpdate(adminBtn);
+    return;
+  }
+
   const addBtn = e.target.closest('[data-add]');
   if (addBtn) {
     const productId = Number(addBtn.dataset.add);
@@ -658,16 +768,17 @@ categoryProductsEl.addEventListener('click', (e) => {
       openDetail(productId, 'category');
       return;
     }
-    addToCart(makeCartId(productId));
-    hapticImpact('light');
+    const ok = addToCart(makeCartId(productId));
+    if (ok) hapticImpact('light');
     return;
   }
+
   const card = e.target.closest('.product-card');
   if (card) openDetail(Number(card.dataset.id), 'category');
 });
 
 /* ============================================================
-   ДЕТАЛЬНЫЙ ЭКРАН
+   Детальный экран
 ============================================================ */
 function renderDetail(p) {
   detailTitle.textContent = p.title;
@@ -685,21 +796,54 @@ function renderDetail(p) {
   detailImage.alt = p.title;
 
   const hasVariants = Array.isArray(p.variants) && p.variants.length > 0;
+
   if (hasVariants) {
+    detailStockEl.classList.add('hidden');
+    adminDetailControls.classList.add('hidden');
+    detailAdd.classList.add('hidden');
+
     detailVariants.innerHTML =
       `<div class="detail-variants-label">Выберите вид:</div>` +
       p.variants.map((v) => `
-        <button class="variant-btn" data-variant="${escapeHtml(v.id)}" type="button">
-          <span class="variant-title">${escapeHtml(v.title)}</span>
-          <span class="variant-price">${fmtPrice(p.price)} ₽</span>
-        </button>
+        <div class="variant-item">
+          <button class="variant-btn" data-variant="${escapeHtml(v.id)}" type="button">
+            <div class="variant-row">
+              <span class="variant-title">${escapeHtml(v.title)}</span>
+              <span class="variant-price">${fmtPrice(p.price)} ₽</span>
+            </div>
+            <div class="variant-stock ${v.stock <= 0 ? 'out-of-stock' : ''}">
+              ${v.stock > 0 ? `В наличии: ${v.stock} шт.` : 'Нет в наличии'}
+            </div>
+          </button>
+          ${isAdmin ? `
+          <div class="admin-controls" style="margin:0;padding:0;border:none;">
+            <button class="admin-btn" data-admin-action="dec" data-id="${p.id}" data-variant="${escapeHtml(v.id)}">−</button>
+            <button class="admin-btn" data-admin-action="inc" data-id="${p.id}" data-variant="${escapeHtml(v.id)}">+</button>
+          </div>` : ''}
+        </div>
       `).join('');
     detailVariants.classList.remove('hidden');
-    detailAdd.classList.add('hidden');
   } else {
     detailVariants.innerHTML = '';
     detailVariants.classList.add('hidden');
     detailAdd.classList.remove('hidden');
+    detailStockEl.classList.remove('hidden');
+
+    const stock = p.stock || 0;
+    detailStockEl.textContent = stock > 0 ? `В наличии: ${stock} шт.` : 'Нет в наличии';
+    detailStockEl.className = `detail-stock ${stock <= 0 ? 'out-of-stock' : ''}`;
+
+    if (isAdmin) {
+      adminDetailControls.classList.remove('hidden');
+      adminDetailControls.innerHTML = `
+        <button class="admin-btn" data-admin-action="dec" data-id="${p.id}">−</button>
+        <span style="font-size:12px;color:var(--hint);">Изменить</span>
+        <button class="admin-btn" data-admin-action="inc" data-id="${p.id}">+</button>
+      `;
+    } else {
+      adminDetailControls.classList.add('hidden');
+      adminDetailControls.innerHTML = '';
+    }
   }
 }
 
@@ -726,27 +870,38 @@ function closeDetail() {
 }
 detailBack.addEventListener('click', closeDetail);
 
-/* Добавление обычного товара (без вариантов) */
+detailView.addEventListener('click', async (e) => {
+  const adminBtn = e.target.closest('[data-admin-action]');
+  if (adminBtn) {
+    await handleAdminStockUpdate(adminBtn);
+    return;
+  }
+});
+
 detailAdd.addEventListener('click', () => {
   if (currentProductId == null) return;
   const product = getProduct(currentProductId);
   if (!product || product.variants?.length) return;
-  addToCart(makeCartId(currentProductId));
-  hapticNotify('success');
-  closeDetail();
+  const ok = addToCart(makeCartId(currentProductId));
+  if (ok) {
+    hapticNotify('success');
+    closeDetail();
+  }
 });
 
-/* Клик по виду liq — добавляем конкретный вид */
 detailVariants.addEventListener('click', (e) => {
   const btn = e.target.closest('[data-variant]');
   if (!btn || currentProductId == null) return;
-  addToCart(makeCartId(currentProductId, btn.dataset.variant));
-  hapticNotify('success');
-  closeDetail();
+  const cartId = makeCartId(currentProductId, btn.dataset.variant);
+  const ok = addToCart(cartId);
+  if (ok) {
+    hapticNotify('success');
+    closeDetail();
+  }
 });
 
 /* ============================================================
-   КОРЗИНА
+   Корзина
 ============================================================ */
 function showCart() {
   showView('cart');
@@ -780,6 +935,12 @@ function renderCart() {
     const sum = item.price * item.qty;
     const safeId = escapeHtml(item.cartId);
     const safeTitle = escapeHtml(item.displayTitle);
+
+    const parsed = parseCartId(item.cartId);
+    const available = parsed ? getAvailableStock(parsed) : 0;
+    const overStock = item.qty > available;
+    const atMax = item.qty >= available;
+
     return `
       <div class="cart-item">
         <img src="${escapeHtml(item.image)}" alt="${safeTitle}"
@@ -790,8 +951,9 @@ function renderCart() {
           <div class="qty">
             <button data-action="dec" data-id="${safeId}" type="button" aria-label="Убавить">−</button>
             <span>${item.qty}</span>
-            <button data-action="inc" data-id="${safeId}" type="button" aria-label="Прибавить">+</button>
+            <button data-action="inc" data-id="${safeId}" type="button" aria-label="Прибавить" ${atMax ? 'disabled' : ''}>+</button>
           </div>
+          ${overStock ? `<div style="font-size:11px;color:var(--error);margin-top:4px;">В наличии только ${available}</div>` : ''}
         </div>
         <div class="item-total">${fmtPrice(sum)} ₽</div>
       </div>
@@ -803,7 +965,7 @@ function renderCart() {
 
 cartItemsEl.addEventListener('click', (e) => {
   const btn = e.target.closest('button[data-action]');
-  if (!btn) return;
+  if (!btn || btn.disabled) return;
   const cartId = btn.dataset.id;
   if (btn.dataset.action === 'inc') changeQty(cartId, +1);
   else if (btn.dataset.action === 'dec') changeQty(cartId, -1);
@@ -829,7 +991,7 @@ tabCatalog.addEventListener('click', showCatalog);
 tabCart.addEventListener('click', showCart);
 
 /* ============================================================
-   ОФОРМЛЕНИЕ ЗАКАЗА
+   Оформление заказа
 ============================================================ */
 function renderPickupStations() {
   pickupStationsEl.innerHTML = PICKUP_STATIONS.map((s) => `
@@ -869,15 +1031,28 @@ function initCheckoutForm() {
   metroList.innerHTML = getMetroDatalist();
 
   const dates = generateDates();
-  dateScroll.innerHTML = dates.map((d, i) => `
-    <button class="date-pill ${i === 0 ? 'active' : ''}" data-date="${d.date}" data-day="${d.day}" type="button">
-      <span class="day-num">${d.date}</span>
-      <span class="day-name">${d.dayName}</span>
+  const datesWithTimes = dates.map((d) => ({ ...d, times: generateTimes(d.day, d.date) }));
+  const firstAvailableIdx = datesWithTimes.findIndex((d) => d.times.length > 0);
+
+  if (firstAvailableIdx === -1) {
+    dateScroll.innerHTML = '';
+    timeGrid.innerHTML = `<div style="grid-column:1/-1;padding:16px;text-align:center;color:var(--error);font-size:14px;">Нет доступного времени. Попробуйте позже.</div>`;
+    checkoutState.date = '';
+    checkoutState.time = '';
+    updateCheckoutSummary();
+    return;
+  }
+
+  const initial = datesWithTimes[firstAvailableIdx];
+  dateScroll.innerHTML = datesWithTimes.map((d) => `
+    <button class="date-pill ${d.date === initial.date ? 'active' : ''}"
+      data-date="${escapeHtml(d.date)}" data-day="${d.day}" type="button">
+      <span class="day-num">${escapeHtml(d.date)}</span>
+      <span class="day-name">${escapeHtml(d.dayName)}</span>
     </button>
   `).join('');
-  checkoutState.date = dates[0].date;
-
-  renderTimeGrid(dates[0].day);
+  checkoutState.date = initial.date;
+  renderTimeGrid(initial.day, initial.date);
   updateCheckoutSummary();
 }
 
@@ -919,7 +1094,6 @@ deliveryPills.forEach((btn) => {
     deliveryPills.forEach((b) => b.classList.toggle('active', b === btn));
     checkoutState.deliveryType = btn.dataset.delivery;
 
-    // При возврате на самовывоз сбрасываем metro, чтобы не осталось старое значение
     if (checkoutState.deliveryType === 'pickup') {
       metroInput.value = '';
       checkoutState.metro = '';
@@ -950,7 +1124,7 @@ dateScroll.addEventListener('click', (e) => {
   dateScroll.querySelectorAll('.date-pill').forEach((p) => p.classList.toggle('active', p === pill));
   checkoutState.date = pill.dataset.date;
 
-  if (!alreadyActive) renderTimeGrid(Number(pill.dataset.day));
+  if (!alreadyActive) renderTimeGrid(Number(pill.dataset.day), pill.dataset.date);
   hapticSelection();
 });
 
@@ -962,39 +1136,39 @@ timeGrid.addEventListener('click', (e) => {
   hapticSelection();
 });
 
-/* -------- Кнопка «Из Telegram» -------- */
+/* -------- «Из Telegram» -------- */
 fromTelegramBtn.addEventListener('click', () => {
   if (typeof tg?.requestContact !== 'function') {
     tg?.showAlert?.('Обновите Telegram до последней версии или введите номер вручную.');
     return;
   }
   tg.requestContact((shared) => {
-    if (!shared) tg?.showAlert?.('Вы отклонили запрос. Введите номер вручную.');
+    if (!shared) return;
+
+    // Пытаемся получить телефон из актуального initData
+    let phone = tg?.initDataUnsafe?.user?.phone_number;
+    if (!phone && tg?.initData) {
+      try {
+        const params = new URLSearchParams(tg.initData);
+        const user = JSON.parse(params.get('user') || 'null');
+        phone = user?.phone_number;
+      } catch {}
+    }
+
+    if (phone) {
+      const formatted = formatPhone(phone);
+      phoneInput.value = formatted;
+      checkoutState.phone = formatted;
+      phoneInput.classList.remove('invalid');
+      phoneError.classList.add('hidden');
+      hapticNotify('success');
+    } else {
+      tg?.showAlert?.('Номер отправлен боту. Введите его вручную в поле.');
+    }
   });
 });
 
-tg?.onEvent?.('contactRequested', (event) => {
-  const status = event?.status || event?.data?.status;
-  if (status && status !== 'sent') return;
-
-  const phone =
-    event?.contact?.phone_number ||
-    event?.data?.contact?.phone_number ||
-    event?.data?.responseUnsafe?.contact?.phone_number ||
-    tg?.initDataUnsafe?.user?.phone_number;
-
-  if (!phone) return;
-
-  const formatted = formatPhone(phone);
-  phoneInput.value = formatted;
-  checkoutState.phone = formatted;
-  if (isPhoneValid(formatted)) {
-    phoneInput.classList.remove('invalid');
-    phoneError.classList.add('hidden');
-  }
-});
-
-/* -------- Валидация метро -------- */
+/* -------- Метро -------- */
 metroInput.addEventListener('input', (e) => {
   checkoutState.metro = e.target.value;
   const v = e.target.value.trim();
@@ -1018,7 +1192,7 @@ metroInput.addEventListener('blur', () => {
   }
 });
 
-/* -------- Маска телефона -------- */
+/* -------- Телефон -------- */
 phoneInput.addEventListener('input', (e) => {
   const formatted = formatPhone(e.target.value);
   e.target.value = formatted;
@@ -1050,7 +1224,7 @@ cancelOrderBtn.addEventListener('click', showCart);
 checkoutBack.addEventListener('click', showCart);
 
 /* ============================================================
-   ПОДТВЕРЖДЕНИЕ ЗАКАЗА
+   Подтверждение заказа
 ============================================================ */
 function generateOrderNumber() {
   const d = new Date();
@@ -1062,16 +1236,11 @@ function generateOrderNumber() {
 }
 
 async function sendOrderToBot(order) {
-  if (!ORDER_PROXY_CONFIGURED) {
-    console.warn('[order] ORDER_PROXY_URL не настроен — заказ сохранён только локально.');
-    return { ok: false, reason: 'not_configured' };
-  }
-
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), ORDER_TIMEOUT_MS);
 
   try {
-    const res = await fetch(ORDER_PROXY_URL, {
+    const res = await fetch(ORDER_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(order),
@@ -1090,13 +1259,15 @@ async function sendOrderToBot(order) {
     return await res.json();
   } catch (err) {
     clearTimeout(timeoutId);
-    console.error('[order] Ошибка отправки:', err);
+    console.error('[order] отправка не удалась', err);
     return { ok: false, reason: 'network' };
   }
 }
 
 confirmOrderBtn.addEventListener('click', async () => {
-  /* ---- Валидация ---- */
+  if (confirmOrderBtn.disabled) return;
+
+  // ---- 1. Валидация формы ----
   if (checkoutState.deliveryType === 'pickup' && !PICKUP_STATIONS_SET.has(checkoutState.pickupStation)) {
     tg?.showAlert?.('Выберите станцию самовывоза.');
     return;
@@ -1125,11 +1296,28 @@ confirmOrderBtn.addEventListener('click', async () => {
     return;
   }
 
-  /* ---- Формирование заказа ---- */
+  // ---- 2. Валидация склада ----
+  const stockIssues = validateCartAgainstStock();
+  if (stockIssues.length > 0) {
+    saveCart();
+    updateCartUI();
+    tg?.showAlert?.(
+      'Изменились остатки:\n\n' + stockIssues.join('\n') +
+      '\n\nПроверьте корзину и попробуйте снова.'
+    );
+    return;
+  }
+
+  const { entries, total: itemsTotal } = getCartStats();
+  if (entries.length === 0) {
+    tg?.showAlert?.('Корзина пуста.');
+    return;
+  }
+
+  // ---- 3. Формирование заказа ----
   confirmOrderBtn.disabled = true;
   confirmOrderBtn.textContent = 'Отправка…';
 
-  const { entries, total: itemsTotal } = getCartStats();
   const orderId = generateOrderNumber();
   const deliveryCost = checkoutState.deliveryType === 'delivery' ? DELIVERY_PRICE : 0;
   const orderTotal = itemsTotal + deliveryCost;
@@ -1167,28 +1355,48 @@ confirmOrderBtn.addEventListener('click', async () => {
     initData: tg?.initData || '',
   };
 
+  // ---- 4. Локальное сохранение (best-effort) ----
   try {
-    const savedOrders = JSON.parse(localStorage.getItem('user_orders') || '[]');
-    savedOrders.push(order);
-    localStorage.setItem('user_orders', JSON.stringify(savedOrders));
+    const saved = JSON.parse(localStorage.getItem('user_orders') || '[]');
+    saved.push(order);
+    localStorage.setItem('user_orders', JSON.stringify(saved));
   } catch (e) {
-    console.error('Ошибка сохранения заказа:', e);
+    console.warn('[order] localStorage save failed', e);
   }
 
+  // ---- 5. Отправка ----
   const result = await sendOrderToBot(order);
 
-  if (result?.ok === false) {
-    if (result.reason === 'network') {
-      tg?.showAlert?.('Не удалось отправить заказ. Мы свяжемся с вами вручную.');
-    } else if (result.reason === 'invalid_init_data') {
-      tg?.showAlert?.('Сессия Telegram устарела. Переоткройте магазин.');
+  if (!result || !result.ok) {
+    confirmOrderBtn.disabled = false;
+    confirmOrderBtn.textContent = 'Подтвердить заказ';
+
+    const reason = result?.reason;
+        if (reason === 'network') {
+      tg?.showAlert?.('Не удалось отправить заказ. Проверьте соединение и попробуйте снова.');
+    } else if (reason === 'invalid_init_data') {
+      tg?.showAlert?.('Сессия Telegram устарела. Переоткройте магазин и оформите заказ заново.');
+    } else if (reason === 'secrets_missing') {
+      tg?.showAlert?.('Магазин временно недоступен. Попробуйте позже.');
+    } else if (reason === 'too_many_items') {
+      tg?.showAlert?.('Слишком много позиций в заказе. Оформите двумя заказами.');
+    } else if (typeof reason === 'string' && reason.startsWith('http_')) {
+      tg?.showAlert?.('Ошибка сервера. Попробуйте ещё раз через минуту.');
+    } else {
+      tg?.showAlert?.('Не удалось отправить заказ. Попробуйте ещё раз.');
     }
+    return;
   }
 
+  /* ---- 6. Успех: очищаем корзину и показываем экран ---- */
   cart = {};
   cartItemCache.clear();
   saveCart();
-  updateCartUI();
+  updateCartUI(); // скроет бейдж и обновит счётчик
+
+  // Сброс кнопки для следующего заказа (иначе она останется disabled до перезагрузки)
+  confirmOrderBtn.disabled = false;
+  confirmOrderBtn.textContent = 'Подтвердить заказ';
 
   const pickupOrMetro = order.deliveryType === 'pickup'
     ? `Самовывоз: ${escapeHtml(order.pickupStation)}`
@@ -1212,14 +1420,20 @@ confirmOrderBtn.addEventListener('click', async () => {
     <div>Сумма: <span>${fmtPrice(order.total)} ₽</span></div>
   `;
 
-  confirmOrderBtn.disabled = false;
-  confirmOrderBtn.textContent = 'Подтвердить заказ';
-
   showView('success');
   setTabbarVisible(false);
   setHeaderVisible(false);
   tg?.BackButton?.hide?.();
   hapticNotify('success');
+
+  // Фоновое обновление остатков: сервер их мог уменьшить при списании.
+  // Если пользователь вернётся в каталог — увидит актуальные цифры.
+  fetchStock().then(() => {
+    if (activeView === 'catalog') renderCategories();
+    else if (activeView === 'category' && currentCategoryId) {
+      renderCategoryProducts(currentCategoryId);
+    }
+  });
 });
 
 successCloseBtn.addEventListener('click', showCatalog);
@@ -1229,7 +1443,7 @@ successCloseBtn.addEventListener('click', showCatalog);
 ============================================================ */
 tg?.BackButton?.onClick?.(() => {
   if (activeView === 'detail') closeDetail();
-  else if (activeView === 'category') closeCategory();
+  else if (activeView === 'category') showCatalog();
   else if (activeView === 'checkout') showCart();
   else if (activeView === 'cart') showCatalog();
   else if (activeView === 'success') showCatalog();
@@ -1237,8 +1451,13 @@ tg?.BackButton?.onClick?.(() => {
 });
 
 /* ============================================================
-   Инициализация
+   Boot
 ============================================================ */
-renderCategories();
-updateCartUI();
-showCatalog();
+async function boot() {
+  await fetchStock();
+  renderCategories();
+  updateBadge();
+  showCatalog();
+}
+
+boot();
