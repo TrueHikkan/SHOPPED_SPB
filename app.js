@@ -10,12 +10,11 @@ if (tg) {
 }
 
 // ⚠️ ТОЛЬКО для UI. Реальная защита — ADMIN_IDS в секретах Worker.
-// ID всегда числом. Узнать: @userinfobot
+// Значения должны совпадать с ADMIN_IDS.
 const ADMIN_LIST = [123456789];
 const ADMIN_SET = new Set(ADMIN_LIST.map(Number));
 const currentUserId = tg?.initDataUnsafe?.user?.id;
-const isAdmin =
-  currentUserId != null && ADMIN_SET.has(Number(currentUserId));
+const isAdmin = currentUserId != null && ADMIN_SET.has(Number(currentUserId));
 
 if (tg?.initDataUnsafe?.user) {
   const u = tg.initDataUnsafe.user;
@@ -39,7 +38,6 @@ const ORDER_TIMEOUT_MS = 15000;
    Хелперы
 ============================================================ */
 const $ = (sel) => document.querySelector(sel);
-
 const hapticImpact = (style = 'light') => tg?.HapticFeedback?.impactOccurred?.(style);
 const hapticNotify = (type = 'success') => tg?.HapticFeedback?.notificationOccurred?.(type);
 const hapticSelection = () => tg?.HapticFeedback?.selectionChanged?.();
@@ -53,7 +51,6 @@ function plural(n, one, few, many) {
   if (m10 >= 2 && m10 <= 4 && (m100 < 10 || m100 >= 20)) return few;
   return many;
 }
-
 const fmtPrice = (n) => Number(n || 0).toLocaleString('ru-RU');
 
 function scrollTop() {
@@ -74,7 +71,6 @@ function formatPhone(raw) {
   if (digits.length > 9) out += '-' + digits.slice(9, 11);
   return out;
 }
-
 const isPhoneValid = (phone) => String(phone || '').replace(/\D/g, '').length === 11;
 
 /* ============================================================
@@ -190,7 +186,7 @@ async function fetchStock() {
     const res = await fetch(STOCK_URL, { cache: 'no-store' });
     if (!res.ok) throw new Error('http_' + res.status);
     const data = await res.json();
-    if (data && typeof data === 'object') {
+    if (data && typeof data === 'object' && !data.ok) {
       serverStock = data;
       applyServerStock();
     }
@@ -272,7 +268,7 @@ function getCartItem(cartId) {
 }
 
 /* ============================================================
-   Данные доставки
+   Доставка
 ============================================================ */
 const PICKUP_STATIONS = ['Комендантский проспект', 'Удельная', 'Пионерская'];
 const PICKUP_STATIONS_SET = new Set(PICKUP_STATIONS);
@@ -398,7 +394,7 @@ function validateCartAgainstStock() {
 }
 
 /* ============================================================
-   DOM-элементы
+   DOM
 ============================================================ */
 const headerEl = $('#header');
 const categoriesEl = $('#categories');
@@ -417,7 +413,9 @@ const cartBadge = $('#cartBadge');
 const tabbar = $('#tabbar');
 const tabCatalog = $('#tabCatalog');
 const tabCart = $('#tabCart');
+
 const detailView = $('#detailView');
+const sheetBackdrop = $('#sheetBackdrop');
 const detailBack = $('#detailBack');
 const detailImage = $('#detailImage');
 const detailTitle = $('#detailTitle');
@@ -478,7 +476,7 @@ const checkoutState = {
 };
 
 /* ============================================================
-   Админ: обновление склада (async, с backend)
+   Админ: обновление склада
 ============================================================ */
 const pendingAdminUpdates = new Set();
 
@@ -505,7 +503,6 @@ async function handleAdminStockUpdate(btn) {
 
   pendingAdminUpdates.add(key);
 
-  // Оптимистичное обновление
   if (parsed.variant) parsed.variant.stock = next;
   else p.stock = next;
   rerenderActive();
@@ -526,23 +523,20 @@ async function handleAdminStockUpdate(btn) {
 
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      // откат
       if (parsed.variant) parsed.variant.stock = current;
       else p.stock = current;
       rerenderActive();
 
-      tg?.showAlert?.(
-        data.error === 'forbidden'
-          ? 'Нет прав. Проверьте ADMIN_IDS в секретах Worker.'
-          : 'Не удалось сохранить остаток. Попробуйте снова.'
-      );
+      let msg = 'Не удалось сохранить остаток. Попробуйте снова.';
+      if (data.error === 'forbidden') msg = 'Нет прав. Проверьте ADMIN_IDS в секретах Worker.';
+      else if (data.error === 'invalid_init_data') msg = 'Сессия Telegram устарела. Переоткройте магазин.';
+      tg?.showAlert?.(msg);
       return;
     }
 
     serverStock[key] = next;
     hapticImpact('light');
   } catch (err) {
-    // откат
     if (parsed.variant) parsed.variant.stock = current;
     else p.stock = current;
     rerenderActive();
@@ -556,7 +550,13 @@ function rerenderActive() {
   if (activeView === 'category') renderCategoryProducts(currentCategoryId);
   else if (activeView === 'detail' && currentProductId != null) {
     const p = getProduct(currentProductId);
-    if (p) renderDetail(p);
+    if (p) {
+      const body = detailView.querySelector('.sheet-body');
+      const scrollPos = body ? body.scrollTop : 0;
+      renderDetail(p);
+      const newBody = detailView.querySelector('.sheet-body');
+      if (newBody) newBody.scrollTop = scrollPos;
+    }
   } else if (activeView === 'cart') renderCart();
 }
 
@@ -681,9 +681,9 @@ function productCardHTML(p) {
           <button class="add-btn" data-add="${p.id}" type="button" aria-label="Добавить в корзину">+</button>
         </div>
         ${isAdmin && !p.variants ? `
-        <div class="admin-controls" onclick="event.stopPropagation()">
-          <button class="admin-btn" data-admin-action="dec" data-id="${p.id}">−</button>
-          <button class="admin-btn" data-admin-action="inc" data-id="${p.id}">+</button>
+        <div class="admin-controls">
+          <button class="admin-btn" data-admin-action="dec" data-id="${p.id}" type="button">−</button>
+          <button class="admin-btn" data-admin-action="inc" data-id="${p.id}" type="button">+</button>
         </div>` : ''}
       </div>
     </div>
@@ -712,6 +712,7 @@ function showCatalog() {
   currentCategoryId = null;
   currentProductId = null;
   detailOrigin = 'catalog';
+  closeSheet();
   showView('catalog');
   setTabbarVisible(true);
   setHeaderVisible(true);
@@ -778,7 +779,7 @@ categoryProductsEl.addEventListener('click', async (e) => {
 });
 
 /* ============================================================
-   Детальный экран
+   Bottom sheet — детали
 ============================================================ */
 function renderDetail(p) {
   detailTitle.textContent = p.title;
@@ -800,13 +801,16 @@ function renderDetail(p) {
   if (hasVariants) {
     detailStockEl.classList.add('hidden');
     adminDetailControls.classList.add('hidden');
+    adminDetailControls.innerHTML = '';
     detailAdd.classList.add('hidden');
 
     detailVariants.innerHTML =
-      `<div class="detail-variants-label">Выберите вид:</div>` +
-      p.variants.map((v) => `
+      `<div class="detail-variants-label">Выберите вкус:</div>` +
+      p.variants.map((v) => {
+        const disabled = v.stock <= 0 ? 'disabled' : '';
+        return `
         <div class="variant-item">
-          <button class="variant-btn" data-variant="${escapeHtml(v.id)}" type="button">
+          <button class="variant-btn" data-variant="${escapeHtml(v.id)}" type="button" ${disabled}>
             <div class="variant-row">
               <span class="variant-title">${escapeHtml(v.title)}</span>
               <span class="variant-price">${fmtPrice(p.price)} ₽</span>
@@ -817,28 +821,31 @@ function renderDetail(p) {
           </button>
           ${isAdmin ? `
           <div class="admin-controls" style="margin:0;padding:0;border:none;">
-            <button class="admin-btn" data-admin-action="dec" data-id="${p.id}" data-variant="${escapeHtml(v.id)}">−</button>
-            <button class="admin-btn" data-admin-action="inc" data-id="${p.id}" data-variant="${escapeHtml(v.id)}">+</button>
+            <button class="admin-btn" data-admin-action="dec" data-id="${p.id}" data-variant="${escapeHtml(v.id)}" type="button">−</button>
+            <button class="admin-btn" data-admin-action="inc" data-id="${p.id}" data-variant="${escapeHtml(v.id)}" type="button">+</button>
           </div>` : ''}
-        </div>
-      `).join('');
+        </div>`;
+      }).join('');
     detailVariants.classList.remove('hidden');
   } else {
     detailVariants.innerHTML = '';
     detailVariants.classList.add('hidden');
     detailAdd.classList.remove('hidden');
-    detailStockEl.classList.remove('hidden');
 
     const stock = p.stock || 0;
+    detailStockEl.classList.remove('hidden');
     detailStockEl.textContent = stock > 0 ? `В наличии: ${stock} шт.` : 'Нет в наличии';
     detailStockEl.className = `detail-stock ${stock <= 0 ? 'out-of-stock' : ''}`;
+
+    detailAdd.disabled = stock <= 0;
+    detailAdd.textContent = stock > 0 ? 'Добавить в корзину' : 'Нет в наличии';
 
     if (isAdmin) {
       adminDetailControls.classList.remove('hidden');
       adminDetailControls.innerHTML = `
-        <button class="admin-btn" data-admin-action="dec" data-id="${p.id}">−</button>
-        <span style="font-size:12px;color:var(--hint);">Изменить</span>
-        <button class="admin-btn" data-admin-action="inc" data-id="${p.id}">+</button>
+        <button class="admin-btn" data-admin-action="dec" data-id="${p.id}" type="button">−</button>
+        <span style="font-size:12px;color:var(--hint);">Изменить остаток</span>
+        <button class="admin-btn" data-admin-action="inc" data-id="${p.id}" type="button">+</button>
       `;
     } else {
       adminDetailControls.classList.add('hidden');
@@ -847,16 +854,31 @@ function renderDetail(p) {
   }
 }
 
+function openSheet() {
+  sheetBackdrop.classList.remove('hidden');
+  detailView.classList.remove('hidden');
+  document.body.classList.add('sheet-open');
+  // рестарт анимации
+  detailView.style.animation = 'none';
+  void detailView.offsetHeight;
+  detailView.style.animation = '';
+}
+
+function closeSheet() {
+  sheetBackdrop.classList.add('hidden');
+  detailView.classList.add('hidden');
+  document.body.classList.remove('sheet-open');
+}
+
 function openDetail(id, origin = 'catalog') {
   const p = getProduct(id);
   if (!p) return;
   detailOrigin = origin;
   currentProductId = id;
   renderDetail(p);
-  showView('detail');
   setTabbarVisible(false);
   setHeaderVisible(false);
-  scrollTop();
+  openSheet();
   tg?.BackButton?.show?.();
 }
 
@@ -865,10 +887,13 @@ function closeDetail() {
   const categoryId = currentCategoryId;
   currentProductId = null;
   detailOrigin = 'catalog';
+  closeSheet();
   if (origin === 'category' && categoryId) openCategory(categoryId, false);
   else showCatalog();
 }
+
 detailBack.addEventListener('click', closeDetail);
+sheetBackdrop.addEventListener('click', closeDetail);
 
 detailView.addEventListener('click', async (e) => {
   const adminBtn = e.target.closest('[data-admin-action]');
@@ -890,6 +915,9 @@ detailAdd.addEventListener('click', () => {
 });
 
 detailVariants.addEventListener('click', (e) => {
+  // ⚠️ сначала отсекаем клики по админ-кнопкам — их обрабатывает detailView
+  if (e.target.closest('[data-admin-action]')) return;
+
   const btn = e.target.closest('[data-variant]');
   if (!btn || currentProductId == null) return;
   const cartId = makeCartId(currentProductId, btn.dataset.variant);
@@ -904,6 +932,7 @@ detailVariants.addEventListener('click', (e) => {
    Корзина
 ============================================================ */
 function showCart() {
+  closeSheet();
   showView('cart');
   setTabbarVisible(true);
   setHeaderVisible(true);
@@ -991,7 +1020,7 @@ tabCatalog.addEventListener('click', showCatalog);
 tabCart.addEventListener('click', showCart);
 
 /* ============================================================
-   Оформление заказа
+   Оформление
 ============================================================ */
 function renderPickupStations() {
   pickupStationsEl.innerHTML = PICKUP_STATIONS.map((s) => `
@@ -1075,6 +1104,7 @@ function updateCheckoutSummary() {
 }
 
 function showCheckout() {
+  closeSheet();
   showView('checkout');
   setTabbarVisible(false);
   setHeaderVisible(false);
@@ -1119,11 +1149,9 @@ pickupStationsEl.addEventListener('click', (e) => {
 dateScroll.addEventListener('click', (e) => {
   const pill = e.target.closest('.date-pill');
   if (!pill) return;
-
   const alreadyActive = pill.classList.contains('active');
   dateScroll.querySelectorAll('.date-pill').forEach((p) => p.classList.toggle('active', p === pill));
   checkoutState.date = pill.dataset.date;
-
   if (!alreadyActive) renderTimeGrid(Number(pill.dataset.day), pill.dataset.date);
   hapticSelection();
 });
@@ -1144,8 +1172,6 @@ fromTelegramBtn.addEventListener('click', () => {
   }
   tg.requestContact((shared) => {
     if (!shared) return;
-
-    // Пытаемся получить телефон из актуального initData
     let phone = tg?.initDataUnsafe?.user?.phone_number;
     if (!phone && tg?.initData) {
       try {
@@ -1154,7 +1180,6 @@ fromTelegramBtn.addEventListener('click', () => {
         phone = user?.phone_number;
       } catch {}
     }
-
     if (phone) {
       const formatted = formatPhone(phone);
       phoneInput.value = formatted;
@@ -1182,7 +1207,6 @@ metroInput.addEventListener('blur', () => {
   const v = metroInput.value.trim();
   if (v !== metroInput.value) metroInput.value = v;
   checkoutState.metro = v;
-
   if (v && !SPB_METRO_SET.has(v)) {
     metroInput.classList.add('invalid');
     metroError.classList.remove('hidden');
@@ -1197,7 +1221,6 @@ phoneInput.addEventListener('input', (e) => {
   const formatted = formatPhone(e.target.value);
   e.target.value = formatted;
   checkoutState.phone = formatted;
-
   if (!formatted || isPhoneValid(formatted)) {
     phoneInput.classList.remove('invalid');
     phoneError.classList.add('hidden');
@@ -1238,7 +1261,6 @@ function generateOrderNumber() {
 async function sendOrderToBot(order) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), ORDER_TIMEOUT_MS);
-
   try {
     const res = await fetch(ORDER_URL, {
       method: 'POST',
@@ -1247,7 +1269,6 @@ async function sendOrderToBot(order) {
       signal: controller.signal,
     });
     clearTimeout(timeoutId);
-
     if (!res.ok) {
       let reason = 'http_' + res.status;
       try {
@@ -1267,7 +1288,6 @@ async function sendOrderToBot(order) {
 confirmOrderBtn.addEventListener('click', async () => {
   if (confirmOrderBtn.disabled) return;
 
-  // ---- 1. Валидация формы ----
   if (checkoutState.deliveryType === 'pickup' && !PICKUP_STATIONS_SET.has(checkoutState.pickupStation)) {
     tg?.showAlert?.('Выберите станцию самовывоза.');
     return;
@@ -1296,7 +1316,6 @@ confirmOrderBtn.addEventListener('click', async () => {
     return;
   }
 
-  // ---- 2. Валидация склада ----
   const stockIssues = validateCartAgainstStock();
   if (stockIssues.length > 0) {
     saveCart();
@@ -1314,7 +1333,6 @@ confirmOrderBtn.addEventListener('click', async () => {
     return;
   }
 
-  // ---- 3. Формирование заказа ----
   confirmOrderBtn.disabled = true;
   confirmOrderBtn.textContent = 'Отправка…';
 
@@ -1355,7 +1373,6 @@ confirmOrderBtn.addEventListener('click', async () => {
     initData: tg?.initData || '',
   };
 
-  // ---- 4. Локальное сохранение (best-effort) ----
   try {
     const saved = JSON.parse(localStorage.getItem('user_orders') || '[]');
     saved.push(order);
@@ -1364,7 +1381,6 @@ confirmOrderBtn.addEventListener('click', async () => {
     console.warn('[order] localStorage save failed', e);
   }
 
-  // ---- 5. Отправка ----
   const result = await sendOrderToBot(order);
 
   if (!result || !result.ok) {
@@ -1372,14 +1388,16 @@ confirmOrderBtn.addEventListener('click', async () => {
     confirmOrderBtn.textContent = 'Подтвердить заказ';
 
     const reason = result?.reason;
-        if (reason === 'network') {
+    if (reason === 'network') {
       tg?.showAlert?.('Не удалось отправить заказ. Проверьте соединение и попробуйте снова.');
-    } else if (reason === 'invalid_init_data') {
+    } else if (reason === 'invalid_init_data' || reason === 'init_data_required') {
       tg?.showAlert?.('Сессия Telegram устарела. Переоткройте магазин и оформите заказ заново.');
     } else if (reason === 'secrets_missing') {
       tg?.showAlert?.('Магазин временно недоступен. Попробуйте позже.');
     } else if (reason === 'too_many_items') {
       tg?.showAlert?.('Слишком много позиций в заказе. Оформите двумя заказами.');
+    } else if (reason === 'invalid_qty') {
+      tg?.showAlert?.('Некорректное количество товара. Обновите корзину.');
     } else if (typeof reason === 'string' && reason.startsWith('http_')) {
       tg?.showAlert?.('Ошибка сервера. Попробуйте ещё раз через минуту.');
     } else {
@@ -1388,13 +1406,11 @@ confirmOrderBtn.addEventListener('click', async () => {
     return;
   }
 
-  /* ---- 6. Успех: очищаем корзину и показываем экран ---- */
   cart = {};
   cartItemCache.clear();
   saveCart();
-  updateCartUI(); // скроет бейдж и обновит счётчик
+  updateCartUI();
 
-  // Сброс кнопки для следующего заказа (иначе она останется disabled до перезагрузки)
   confirmOrderBtn.disabled = false;
   confirmOrderBtn.textContent = 'Подтвердить заказ';
 
@@ -1426,8 +1442,6 @@ confirmOrderBtn.addEventListener('click', async () => {
   tg?.BackButton?.hide?.();
   hapticNotify('success');
 
-  // Фоновое обновление остатков: сервер их мог уменьшить при списании.
-  // Если пользователь вернётся в каталог — увидит актуальные цифры.
   fetchStock().then(() => {
     if (activeView === 'catalog') renderCategories();
     else if (activeView === 'category' && currentCategoryId) {
