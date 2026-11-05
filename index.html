@@ -10,7 +10,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -37,13 +36,11 @@
 
     <section id="cartView" class="view hidden">
       <div id="cartItems" class="cart-items"></div>
-
       <div id="cartEmpty" class="empty hidden">
         <div class="empty-icon">🛒</div>
         <p>Корзина пуста</p>
         <p class="hint">Добавьте товары из каталога</p>
       </div>
-
       <div id="cartFooter" class="cart-footer">
         <div class="total">
           <span>Итого:</span>
@@ -53,23 +50,27 @@
       </div>
     </section>
 
-    <section id="detailView" class="view hidden">
-      <button id="detailBack" class="back-btn" type="button" aria-label="Назад">
-        <span class="back-icon">←</span>
-        <span class="back-text">Назад</span>
-      </button>
-      <img id="detailImage" class="detail-image" alt="" />
-      <div class="detail-body">
-        <h2 id="detailTitle" class="detail-title"></h2>
+    <!-- ========== Bottom sheet ========== -->
+    <div id="sheetBackdrop" class="sheet-backdrop hidden"></div>
+
+    <section id="detailView" class="sheet hidden" aria-modal="true" role="dialog">
+      <div class="sheet-handle"></div>
+
+      <div class="sheet-header">
+        <img id="detailImage" class="sheet-thumb" alt="" />
+        <div class="sheet-header-info">
+          <h2 id="detailTitle" class="detail-title"></h2>
+          <div id="detailPrice" class="detail-price"></div>
+          <div id="detailStock" class="detail-stock hidden"></div>
+        </div>
+        <button id="detailBack" class="sheet-close" type="button" aria-label="Закрыть">✕</button>
+      </div>
+
+      <div class="sheet-body">
         <p id="detailDesc" class="detail-desc"></p>
-        <div class="detail-price" id="detailPrice"></div>
-
-        <div id="detailStock" class="detail-stock hidden"></div>
         <div id="adminDetailControls" class="admin-controls hidden"></div>
-
-        <button id="detailAdd" class="btn-primary" type="button">Добавить в корзину</button>
-
         <div id="detailVariants" class="detail-variants hidden"></div>
+        <button id="detailAdd" class="btn-primary" type="button">Добавить в корзину</button>
       </div>
     </section>
 
